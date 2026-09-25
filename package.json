@@ -1,0 +1,37 @@
+{
+  "name": "hemacare-os",
+  "version": "2.4.0",
+  "description": "Enterprise Blood Bank Management System & PostgreSQL REST API",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:migrate": "node database/migrate.js",
+    "db:init": "node database/migrate.js",
+    "db:seed": "node database/reset_and_seed.js",
+    "test:db": "node -e \"const db = require('./db'); db.testConnection().then(console.log);\"",
+    "test:sync": "node database/test_sync.js",
+    "test:api": "node database/test_all_endpoints.js",
+    "test": "node database/test_all_endpoints.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  },
+  "keywords": [
+    "blood-bank",
+    "postgresql",
+    "healthcare",
+    "express",
+    "rest-api",
+    "clinical-system"
+  ],
+  "author": "HemaCare OS Team",
+  "license": "ISC",
+  "devDependencies": {
+    "jsdom": "^30.1.0"
+  }
+}
