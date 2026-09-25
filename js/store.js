@@ -165,7 +165,9 @@
 
   function saveStore() {
     try {
-      localStorage.setItem('hemacare_clinical_store', JSON.stringify(localStore));
+      const data = JSON.stringify(localStore);
+      localStorage.setItem('hemacare_clinical_store', data);
+      localStorage.setItem('raktsetu_clinical_store', data);
     } catch (e) {
       console.error('[HemaCare Store] LocalStorage save error', e);
     }

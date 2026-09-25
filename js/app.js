@@ -2285,6 +2285,41 @@
         const el = document.getElementById(id);
         if (el && !el.value) el.value = today;
       });
+
+      this.updateTabStockStatusBadge();
+      this.updateModalStockStatusBadge();
+    }
+
+    updateTabStockStatusBadge() {
+      const bgSel = document.getElementById('reqBloodGroup');
+      const badge = document.getElementById('reqStockLiveBadge');
+      if (!bgSel || !badge) return;
+
+      const bg = bgSel.value;
+      const invItem = (window.localStore?.inventory || []).find(i => i.bloodGroup === bg);
+      const units = invItem ? parseInt(invItem.units, 10) : 0;
+
+      if (units > 0) {
+        badge.innerHTML = `<span class="status-badge-chip status-badge-cleared" style="display:inline-block; width:100%; text-align:center;">✓ In Stock: <strong>${units} Units Available</strong> (Auto-Dispatch)</span>`;
+      } else {
+        badge.innerHTML = `<span class="status-badge-chip status-badge-deferred" style="display:inline-block; width:100%; text-align:center;">⚠️ Out of Stock (0 Units) — Auto-Match Active</span>`;
+      }
+    }
+
+    updateModalStockStatusBadge() {
+      const bgSel = document.getElementById('modalReqBloodGroup');
+      const badge = document.getElementById('modalStockStatusBadge');
+      if (!bgSel || !badge) return;
+
+      const bg = bgSel.value;
+      const invItem = (window.localStore?.inventory || []).find(i => i.bloodGroup === bg);
+      const units = invItem ? parseInt(invItem.units, 10) : 0;
+
+      if (units > 0) {
+        badge.innerHTML = `<span class="status-badge-chip status-badge-cleared" style="display:inline-block; width:100%; text-align:center;">✓ In Stock: <strong>${units} Units Available</strong> (Auto-Dispatch)</span>`;
+      } else {
+        badge.innerHTML = `<span class="status-badge-chip status-badge-deferred" style="display:inline-block; width:100%; text-align:center;">⚠️ Out of Stock (0 Units) — Smart Match Active</span>`;
+      }
     }
 
     async syncWithBackend(notifyOnSuccess = false) {
@@ -3147,6 +3182,24 @@
       } catch (e) { }
     }
 
+    async toggleCampStatus(campId) {
+      const camp = (window.localStore.camps || []).find(c => c.id == campId);
+      if (!camp) return;
+
+      const newStatus = (camp.status === 'Active' || camp.status === 'Active Scheduled') ? 'Completed' : 'Active';
+      camp.status = newStatus;
+
+      try {
+        await this.api.updateCamp(campId, { status: newStatus });
+      } catch (e) {}
+
+      if (window.localStore) {
+        window.saveStore();
+      }
+      this.renderCamps();
+      window.showToast('info', 'Status Updated', `Camp #${campId} status set to ${newStatus}.`);
+    }
+
     quickLogDonationForCamp(campId) {
       const select = document.getElementById('modalLogCampSelect');
       if (select) select.value = campId;
@@ -3340,6 +3393,26 @@
       if (datalist) {
         datalist.innerHTML = uniqueCities.map(c => `<option value="${c}">`).join('');
       }
+    }
+
+    filterByCity(city) {
+      this.cityFilter = city;
+      const sel = document.getElementById('filterCity');
+      if (sel) sel.value = city;
+      this.currentPage = 1;
+      this.updateActiveFilterBadges();
+      this.renderDonorsTable();
+      window.showToast('info', 'City Filter Applied', `Showing donors in ${city}`);
+    }
+
+    quickLogDonationFor(donorId) {
+      this.populateDropdowns();
+      const sel = document.getElementById('modalLogDonorSelect');
+      if (sel) {
+        sel.value = donorId;
+        sel.dispatchEvent(new Event('change'));
+      }
+      this.openModal('modalLogDonation');
     }
 
     updateActiveFilterBadges() {
@@ -3693,6 +3766,92 @@
     runCmdHit(idx) {
       if (this._cmdHits && this._cmdHits[idx]) {
         this._cmdHits[idx].action();
+      }
+    }
+
+    runCmd(label) {
+      this.closeModal('modalCmdPalette');
+      if (!label) return;
+      if (label.includes('Dashboard')) this.switchView('viewDashboard');
+      else if (label.includes('Camp Operations') || label.includes('Camp')) this.switchView('viewCamps');
+      else if (label.includes('Schedule New Blood Donation Camp')) this.openModal('modalAddCamp');
+      else if (label.includes('Log Donation Intake')) { this.populateDropdowns(); this.openModal('modalLogDonation'); }
+      else if (label.includes('Dispatch Hospital Request') || label.includes('Hospital Request')) { this.populateDropdowns(); this.openModal('modalHospitalRequest'); }
+      else if (label.includes('Donors Registry') || label.includes('Donors')) this.switchView('viewDonors');
+      else if (label.includes('Sync PostgreSQL') || label.includes('Synchronize')) this.syncWithBackend(true);
+      else if (label.includes('Export Donors CSV')) this.exportDonorsCSV();
+      else if (label.includes('Sign In') || label.includes('Switch User Account')) this.openAuthModal('signIn');
+    }
+
+    async handleLogin() {
+      const email = document.getElementById('loginEmail')?.value.trim();
+      const password = document.getElementById('loginPassword')?.value;
+      const role = document.getElementById('loginRole')?.value || 'Blood Donor';
+
+      if (!email || !password) {
+        window.showToast('error', 'Missing Credentials', 'Please enter email and password.');
+        return;
+      }
+
+      try {
+        const res = await this.api.login({ email, password, role });
+        if (res && res.success && res.user) {
+          this.currentUser = res.user;
+          this.isAuthenticated = true;
+          if (window.localStore) {
+            window.localStore.currentUser = res.user;
+            window.localStore.isAuthenticated = true;
+            window.saveStore();
+          }
+          localStorage.setItem('hemacare_session_active', 'true');
+          localStorage.setItem('raktsetu_session_active', 'true');
+          this.closeModal('modalAuth');
+          this.showAppDashboard();
+          this.routeUserToRoleDashboard(res.user.role);
+          this.populateDropdowns();
+          this.renderAll();
+          window.showToast('success', 'Authenticated Successfully', `Welcome back, ${res.user.name}! (${res.user.role})`);
+        }
+      } catch (err) {
+        window.showToast('error', 'Login Failed', err.message || 'Invalid credentials');
+      }
+    }
+
+    async handleRegister() {
+      const name = document.getElementById('regName')?.value.trim();
+      const email = document.getElementById('regEmail')?.value.trim();
+      const phone = document.getElementById('regPhone')?.value.trim();
+      const city = document.getElementById('regCity')?.value.trim() || 'Ahmedabad';
+      const role = document.getElementById('regRole')?.value || 'Blood Donor';
+      const bloodGroup = document.getElementById('regBloodGroup')?.value || 'B+';
+      const password = document.getElementById('regPassword')?.value;
+
+      if (!name || !email || !password) {
+        window.showToast('error', 'Required Fields', 'Please complete all required fields.');
+        return;
+      }
+
+      try {
+        const res = await this.api.register({ name, email, phone, city, role, bloodGroup, password });
+        if (res && res.success && res.user) {
+          this.currentUser = res.user;
+          this.isAuthenticated = true;
+          if (window.localStore) {
+            window.localStore.currentUser = res.user;
+            window.localStore.isAuthenticated = true;
+            window.saveStore();
+          }
+          localStorage.setItem('hemacare_session_active', 'true');
+          localStorage.setItem('raktsetu_session_active', 'true');
+          this.closeModal('modalAuth');
+          this.showAppDashboard();
+          this.routeUserToRoleDashboard(res.user.role);
+          this.populateDropdowns();
+          this.renderAll();
+          window.showToast('success', 'Account Registered', `Welcome to HemaCare OS, ${res.user.name}!`);
+        }
+      } catch (err) {
+        window.showToast('error', 'Registration Failed', err.message || 'Could not register user');
       }
     }
 
