@@ -1,10 +1,10 @@
-# 🩸 RaktSetu / HemaCare OS — Enterprise Blood Bank Management System (Node.js & JavaScript Backend)
+# 🩸 RaktSetu  — Enterprise Blood Bank Management System (Node.js & JavaScript Backend )
 
 A production-grade, fault-tolerant Blood Bank Management System backed by a relational **PostgreSQL Database**, a high-performance **Node.js Express REST API** (with `pg` connection pooling), and a clinical Single-Page Application (SPA) frontend.
 
 ---
 
-## 🏗️ Project Architecture & Layout
+ 🏗️ Project Architecture & Layout
 
 ```
 DBMS/
