@@ -578,6 +578,23 @@
       this.openModal('modalForgotPassword');
     }
 
+    toggleUserMenu(e) {
+      if (e && typeof e.stopPropagation === 'function') {
+        e.stopPropagation();
+      }
+      const dropdown = document.getElementById('userDropdownMenu');
+      if (dropdown) {
+        const isShown = dropdown.classList.contains('active') || dropdown.classList.contains('open') || dropdown.classList.contains('show') || dropdown.style.display === 'block';
+        if (isShown) {
+          dropdown.classList.remove('active', 'open', 'show');
+          dropdown.style.display = 'none';
+        } else {
+          dropdown.classList.add('active', 'open', 'show');
+          dropdown.style.display = 'block';
+        }
+      }
+    }
+
     setupAuthListeners() {
       // 1. Top-bar user profile dropdown toggle
       const btnToggle = document.getElementById('btnUserMenuToggle');
@@ -585,12 +602,15 @@
 
       btnToggle?.addEventListener('click', (e) => {
         e.stopPropagation();
-        dropdown?.classList.toggle('open');
+        this.toggleUserMenu(e);
       });
 
       document.addEventListener('click', (e) => {
         if (!e.target.closest('#userTopbarWrapper')) {
-          dropdown?.classList.remove('open');
+          if (dropdown) {
+            dropdown.classList.remove('active', 'open', 'show');
+            dropdown.style.display = 'none';
+          }
         }
       });
 
@@ -600,23 +620,36 @@
       });
 
       // 3. Dropdown Menu Items
-      document.getElementById('btnMenuOpenProfile')?.addEventListener('click', () => {
-        dropdown?.classList.remove('open');
+      document.getElementById('btnMenuOpenProfile')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dropdown) {
+          dropdown.classList.remove('active', 'open', 'show');
+          dropdown.style.display = 'none';
+        }
         this.openUserProfileModal();
       });
 
-      document.getElementById('btnMenuSwitchAccount')?.addEventListener('click', () => {
-        dropdown?.classList.remove('open');
+      document.getElementById('btnMenuSwitchAccount')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dropdown) {
+          dropdown.classList.remove('active', 'open', 'show');
+          dropdown.style.display = 'none';
+        }
         this.openAuthModal('signIn');
       });
 
-      document.getElementById('btnProfileSwitchAccount')?.addEventListener('click', () => {
+      document.getElementById('btnProfileSwitchAccount')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         this.closeModal('modalUserProfile');
         this.openAuthModal('signIn');
       });
 
-      document.getElementById('btnMenuLogout')?.addEventListener('click', () => {
-        dropdown?.classList.remove('open');
+      document.getElementById('btnMenuLogout')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dropdown) {
+          dropdown.classList.remove('active', 'open', 'show');
+          dropdown.style.display = 'none';
+        }
         this.handleLogout();
       });
 
@@ -1986,28 +2019,47 @@
         let statusClass = 'status-optimal';
         let fillClass = 'fill-optimal';
 
+        let statusText = 'Optimal';
         if (units < 30) {
           statusClass = 'status-critical';
           fillClass = 'fill-critical';
+          statusText = 'Critical';
         } else if (units < 45) {
           statusClass = 'status-low';
           fillClass = 'fill-low';
+          statusText = 'Low';
         }
 
         return `
-          <div class="blood-card hospital-stock-card">
+          <div class="blood-card hospital-stock-card ${statusClass}">
             <div class="blood-card-top">
-              <span class="blood-group-badge">${item.bloodGroup}</span>
-              <span class="stock-status-pill ${statusClass}">${item.status || 'Optimal'}</span>
+              <div class="blood-group-badge-wrap">
+                <span class="blood-group-badge">${item.bloodGroup}</span>
+              </div>
+              <span class="stock-status-pill ${statusClass}">
+                <span class="status-dot"></span>
+                ${statusText}
+              </span>
             </div>
-            <div class="blood-units-count">${units} <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Units</span></div>
-            <div class="blood-capacity-label">Reserve Capacity: ${capacity}U (${fillPct}%)</div>
+            <div class="blood-units-count">
+              <span class="count-val">${units}</span>
+              <span class="units-suffix">Units</span>
+            </div>
+            <div class="blood-capacity-row">
+              <span class="blood-capacity-label">Reserve Capacity: ${capacity}U</span>
+              <span class="blood-capacity-pct">${fillPct}%</span>
+            </div>
             <div class="blood-progress-track">
               <div class="blood-progress-fill ${fillClass}" style="width: ${fillPct}%;"></div>
             </div>
             <div class="blood-card-footer">
-              <span>${item.rack || item.storage_location || 'CENTRAL-VAULT'}</span>
-              <span>${units > 0 ? '✓ Ready for Order' : '⚠️ Reserve Low'}</span>
+              <span class="rack-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                ${item.rack || item.storage_location || 'RACK-MAIN-COLD'}
+              </span>
+              <span class="order-status-badge ${units > 0 ? 'status-ready' : 'status-alert'}">
+                ${units > 0 ? '✓ Ready for Order' : '⚠️ Reserve Low'}
+              </span>
             </div>
           </div>
         `;
@@ -2601,28 +2653,45 @@
         let statusClass = 'status-optimal';
         let fillClass = 'fill-optimal';
 
+        let statusText = 'Optimal';
         if (units < 30) {
           statusClass = 'status-critical';
           fillClass = 'fill-critical';
+          statusText = 'Critical';
         } else if (units < 45) {
           statusClass = 'status-low';
           fillClass = 'fill-low';
+          statusText = 'Low';
         }
 
         return `
-          <div class="blood-card" onclick="window.HemaCareApp.filterByBloodGroup('${item.bloodGroup}')">
+          <div class="blood-card ${statusClass}" onclick="window.HemaCareApp.filterByBloodGroup('${item.bloodGroup}')" role="button" tabindex="0" title="Click to filter inventory by ${item.bloodGroup}">
             <div class="blood-card-top">
-              <span class="blood-group-badge">${item.bloodGroup}</span>
-              <span class="stock-status-pill ${statusClass}">${item.status || 'Optimal'}</span>
+              <div class="blood-group-badge-wrap">
+                <span class="blood-group-badge">${item.bloodGroup}</span>
+              </div>
+              <span class="stock-status-pill ${statusClass}">
+                <span class="status-dot"></span>
+                ${statusText}
+              </span>
             </div>
-            <div class="blood-units-count">${units} <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Units</span></div>
-            <div class="blood-capacity-label">Cap: ${capacity}U (${fillPct}%)</div>
+            <div class="blood-units-count">
+              <span class="count-val">${units}</span>
+              <span class="units-suffix">Units</span>
+            </div>
+            <div class="blood-capacity-row">
+              <span class="blood-capacity-label">Cap: ${capacity}U</span>
+              <span class="blood-capacity-pct">${fillPct}%</span>
+            </div>
             <div class="blood-progress-track">
               <div class="blood-progress-fill ${fillClass}" style="width: ${Math.min(fillPct, 100)}%;"></div>
             </div>
             <div class="blood-card-footer">
-              <span>${item.rack || item.storage_location || 'COLD-RACK'}</span>
-              ${item.expiringSoon > 0 ? `<span class="expiring-tag">⚠️ ${item.expiringSoon} Expiring</span>` : `<span>✓ Safe</span>`}
+              <span class="rack-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                ${item.rack || item.storage_location || 'COLD-RACK'}
+              </span>
+              ${item.expiringSoon > 0 ? `<span class="expiring-tag">⚠️ ${item.expiringSoon} Expiring</span>` : `<span class="safe-tag">✓ Safe</span>`}
             </div>
           </div>
         `;
@@ -2847,6 +2916,12 @@
     }
 
     setupModalsAndActions() {
+      // Global Emergency Dispatch Header Button
+      document.getElementById('btnEmergencyDispatch')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openHospitalRequestModal();
+      });
+
       // Global Delegated Modal Close & Cancel Click Handler
       document.addEventListener('click', (e) => {
         const closeBtn = e.target.closest('[data-close], [data-dismiss], .modal-close, .btn-modal-close');
@@ -3546,6 +3621,7 @@
     }
 
     openHospitalRequestModal() {
+      this.populateDropdowns();
       this.openModal('modalWaterfallDispatch');
     }
 
@@ -3865,8 +3941,7 @@
       if (modalId === 'modalCommandPalette') modalId = 'modalCmdPalette';
       const modal = document.getElementById(modalId);
       if (modal) {
-        modal.classList.add('open');
-        modal.classList.add('show');
+        modal.classList.add('open', 'show');
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
@@ -3877,14 +3952,15 @@
       if (modalId === 'modalCommandPalette') modalId = 'modalCmdPalette';
       const modal = document.getElementById(modalId);
       if (modal) {
-        modal.classList.remove('open');
-        modal.classList.remove('show');
+        modal.classList.remove('open', 'show');
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
-        const anyOpen = document.querySelector('.modal-backdrop.open, .modal-backdrop.show, .modal-backdrop[style*="flex"]');
-        if (!anyOpen) {
-          document.body.style.overflow = '';
-        }
+      }
+      const anyOpen = Array.from(document.querySelectorAll('.modal-backdrop')).some(m => {
+        return m.classList.contains('open') || m.classList.contains('show') || (m.style.display && m.style.display !== 'none');
+      });
+      if (!anyOpen) {
+        document.body.style.overflow = '';
       }
     }
   }
@@ -3892,8 +3968,7 @@
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       document.querySelectorAll('.modal-backdrop').forEach(m => {
-        m.classList.remove('open');
-        m.classList.remove('show');
+        m.classList.remove('open', 'show');
         m.style.display = 'none';
         m.setAttribute('aria-hidden', 'true');
       });
@@ -3904,11 +3979,12 @@
   document.querySelectorAll('.modal-backdrop').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        modal.classList.remove('open');
-        modal.classList.remove('show');
+        modal.classList.remove('open', 'show');
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
-        const anyOpen = document.querySelector('.modal-backdrop.open, .modal-backdrop.show, .modal-backdrop[style*="flex"]');
+        const anyOpen = Array.from(document.querySelectorAll('.modal-backdrop')).some(m => {
+          return m.classList.contains('open') || m.classList.contains('show') || (m.style.display && m.style.display !== 'none');
+        });
         if (!anyOpen) {
           document.body.style.overflow = '';
         }
@@ -3930,6 +4006,24 @@
   window.switchTab = function (tabId) { const app = bootHemaCareOS(); return app ? app.switchTab(tabId) : null; };
   window.openModal = function (modalId) { const app = bootHemaCareOS(); return app ? app.openModal(modalId) : null; };
   window.closeModal = function (modalId) { const app = bootHemaCareOS(); return app ? app.closeModal(modalId) : null; };
+  window.openHospitalRequestModal = function () { const app = bootHemaCareOS(); return app ? app.openHospitalRequestModal() : null; };
+  window.syncWithBackend = function (notify) { const app = bootHemaCareOS(); return app ? app.syncWithBackend(notify) : null; };
+  window.openUserProfileModal = function () { const app = bootHemaCareOS(); return app ? app.openUserProfileModal() : null; };
+  window.openAuthModal = function (tab) { const app = bootHemaCareOS(); return app ? app.openAuthModal(tab) : null; };
+  window.handleLogout = function () { const app = bootHemaCareOS(); return app ? app.handleLogout() : null; };
+  window.openForgotPasswordModal = function () { const app = bootHemaCareOS(); return app ? app.openForgotPasswordModal() : null; };
+  window.openNewDonorRegistration = function () { const app = bootHemaCareOS(); return app ? app.openNewDonorRegistration() : null; };
+  window.exportDonorsCSV = function () { const app = bootHemaCareOS(); return app ? app.exportDonorsCSV() : null; };
+  window.detectGPSLocation = function () { const app = bootHemaCareOS(); return app ? app.detectGPSLocation() : null; };
+  window.toggleNotificationDrawer = function () { const app = bootHemaCareOS(); return app ? app.toggleNotificationDrawer() : null; };
+  window.markAllNotificationsRead = function () { const app = bootHemaCareOS(); return app ? app.markAllNotificationsRead() : null; };
+  window.clearAllNotifications = function () { const app = bootHemaCareOS(); return app ? app.clearAllNotifications() : null; };
+  window.refreshHospitalStock = function () { const app = bootHemaCareOS(); return app ? app.refreshHospitalStock() : null; };
+  window.findNearbyCamps = function () { const app = bootHemaCareOS(); return app ? app.findNearbyCamps() : null; };
+  window.filterNearbyCampsByRadius = function (r) { const app = bootHemaCareOS(); return app ? app.filterNearbyCampsByRadius(r) : null; };
+  window.filterDoctorReports = function (s) { const app = bootHemaCareOS(); return app ? app.filterDoctorReports(s) : null; };
+  window.filterStaffDonors = function (t) { const app = bootHemaCareOS(); return app ? app.filterStaffDonors(t) : null; };
+  window.toggleUserMenu = function (e) { const app = bootHemaCareOS(); return app ? app.toggleUserMenu(e) : null; };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootHemaCareOS);

@@ -3,11 +3,11 @@
  * Zero-dependency vector charting engine (Smooth Bezier Line, Donut, Grouped Bars, Heatmap).
  */
 
-(function(window) {
+(function (window) {
   'use strict';
 
   const SVGCharts = {
-    
+
     // 1. Weekly Donation Velocity (Bezier Multi-line)
     renderTrend(containerId) {
       const container = document.getElementById(containerId);
@@ -192,11 +192,11 @@
           `).join('')}
 
           ${months.map((m, i) => {
-            const groupX = padL + (i * groupW) + (groupW / 2);
-            const colH = (collected[i] / maxVal) * chartH;
-            const disH = (dispatched[i] / maxVal) * chartH;
+        const groupX = padL + (i * groupW) + (groupW / 2);
+        const colH = (collected[i] / maxVal) * chartH;
+        const disH = (dispatched[i] / maxVal) * chartH;
 
-            return `
+        return `
               <!-- Collected Bar (Green) -->
               <rect
                 x="${groupX - barW - 2}" y="${getY(collected[i])}"
@@ -218,7 +218,7 @@
               <!-- X-Axis Label -->
               <text x="${groupX}" y="${h - 8}" text-anchor="middle" class="chart-axis-text" fill="#64748B" font-size="11">${m}</text>
             `;
-          }).join('')}
+      }).join('')}
         </svg>
       `;
 
@@ -232,7 +232,7 @@
 
       const hospitals = ['Civil Hospital', 'Apollo Surat', 'Sterling Vad.', 'Wockhardt Raj.', 'Zydus Meh.'];
       const bloodGroups = ['O+', 'A+', 'B+', 'AB+', 'O-'];
-      
+
       // Intensity Matrix (0: Low, 1: Moderate, 2: High, 3: Critical)
       const matrix = [
         [3, 2, 3, 1, 3], // Civil
@@ -263,10 +263,10 @@
           ${hospitals.map((hosp, r) => `
             <text x="${padL - 10}" y="${padT + (r * cellH) + (cellH / 2) + 4}" text-anchor="end" class="chart-axis-text" font-size="10.5" fill="#475569">${hosp}</text>
             ${bloodGroups.map((bg, c) => {
-              const intensity = matrix[r][c];
-              const x = padL + (c * cellW) + 2;
-              const y = padT + (r * cellH) + 2;
-              return `
+        const intensity = matrix[r][c];
+        const x = padL + (c * cellW) + 2;
+        const y = padT + (r * cellH) + 2;
+        return `
                 <rect x="${x}" y="${y}" width="${cellW - 4}" height="${cellH - 4}" rx="4" fill="${colorMap[intensity]}" class="chart-data-point" stroke="#E2E8F0" stroke-width="1">
                   <title>${hosp} - ${bg}: Priority Level ${intensity === 3 ? 'Code Red' : (intensity === 2 ? 'High' : 'Normal')}</title>
                 </rect>
@@ -274,7 +274,7 @@
                   ${intensity === 3 ? 'CRIT' : (intensity === 2 ? 'HIGH' : (intensity === 1 ? 'MOD' : 'OK'))}
                 </text>
               `;
-            }).join('')}
+      }).join('')}
           `).join('')}
         </svg>
       `;
