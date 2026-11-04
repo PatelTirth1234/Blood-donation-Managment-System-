@@ -144,22 +144,53 @@
     }
 
     routeUserToRoleDashboard(role) {
-      if (!role) role = this.currentUser ? this.currentUser.role : 'Blood Donor';
+      if (!role) role = this.currentUser ? this.currentUser.role : 'Donor / General User';
+      const r = String(role).toLowerCase().trim().replace(/[\s_-]+/g, '_');
 
-      if (role === 'Super Admin') {
+      if (r.includes('admin')) {
         this.switchView('viewSuperAdminDashboard');
-      } else if (role === 'Hospital Coordinator') {
+        this.updateBrowserUrl('/dashboard/super-admin');
+      } else if (r.includes('hospital') || r.includes('coordinator')) {
         this.switchView('viewHospitalCoordinatorDashboard');
-      } else if (role === 'Camp Organizer') {
+        this.updateBrowserUrl('/dashboard/emergency-dispatch');
+      } else if (r.includes('camp') || r.includes('organizer')) {
         this.switchView('viewCampOrganizerDashboard');
-      } else if (role === 'Blood Bank Staff') {
+        this.updateBrowserUrl('/dashboard/camps');
+      } else if (r.includes('blood_bank') || r.includes('staff') || r.includes('bank')) {
         this.switchView('viewStaffDashboard');
-      } else if (role === 'Doctor') {
+        this.updateBrowserUrl('/dashboard/blood-bank-requests');
+      } else if (r.includes('doctor')) {
         this.switchView('viewDoctorDashboard');
-      } else if (role === 'Blood Donor') {
-        this.switchView('viewDonorDashboard');
+        this.updateBrowserUrl('/dashboard/doctor');
       } else {
-        this.switchView('viewDashboard');
+        this.switchView('viewDonorDashboard');
+        this.updateBrowserUrl('/dashboard/donor');
+      }
+    }
+
+    updateBrowserUrl(targetPath) {
+      if (typeof window !== 'undefined' && window.history && window.history.pushState) {
+        try {
+          if (window.location.pathname !== targetPath) {
+            window.history.pushState({ path: targetPath }, '', targetPath);
+          }
+        } catch (e) {
+          window.location.hash = targetPath.replace(/^\//, '');
+        }
+      }
+    }
+
+    handleUrlRouting() {
+      if (!this.isAuthenticated || !this.currentUser) return;
+      const path = (window.location.pathname || '') + (window.location.hash || '');
+      if (path.includes('blood-bank-requests')) {
+        this.switchView('viewStaffDashboard');
+      } else if (path.includes('emergency-dispatch')) {
+        this.switchView('viewHospitalCoordinatorDashboard');
+      } else if (path.includes('camps')) {
+        this.switchView('viewCampOrganizerDashboard');
+      } else if (path.includes('donor')) {
+        this.switchView('viewDonorDashboard');
       }
     }
 
@@ -232,6 +263,134 @@
       }
     }
 
+    computeSmartFacilitySuggestion(role, city = 'Ahmedabad') {
+      const normCity = (city || 'Ahmedabad').trim().toLowerCase();
+      const banks = window.localStore?.bloodBanks || [];
+      const camps = window.localStore?.camps || [];
+      const hospitals = window.localStore?.hospitals || [];
+
+      // 1. Blood Bank matching
+      let matchedBank = banks.find(b => (b.city || '').toLowerCase() === normCity);
+      if (!matchedBank && banks.length > 0) matchedBank = banks[0];
+
+      // 2. Donation Camp matching (Active first, then city match, then first active)
+      let matchedCamp = camps.find(c => (c.city || '').toLowerCase() === normCity && c.status === 'Active');
+      if (!matchedCamp) matchedCamp = camps.find(c => (c.city || '').toLowerCase() === normCity);
+      if (!matchedCamp) matchedCamp = camps.find(c => c.status === 'Active') || camps[0];
+
+      // 3. Hospital matching
+      let matchedHospital = hospitals.find(h => (h.city || '').toLowerCase() === normCity);
+      if (!matchedHospital && hospitals.length > 0) matchedHospital = hospitals[0];
+
+      return {
+        bank: matchedBank,
+        camp: matchedCamp,
+        hospital: matchedHospital,
+        city: city || 'Ahmedabad'
+      };
+    }
+
+    updateRegistrationSuggestions(context = 'landing') {
+      const cityInput = document.getElementById(context === 'landing' ? 'landingRegCity' : 'regCity');
+      const city = (cityInput?.value || 'Ahmedabad').trim() || 'Ahmedabad';
+      const suggestions = this.computeSmartFacilitySuggestion(null, city);
+      const prefix = context === 'landing' ? 'landing' : 'modal';
+
+      // 1. Blood Bank Staff Suggestion Box
+      const bankNameEl = document.getElementById(`${prefix}StaffSuggestedBankName`);
+      const bankDetailEl = document.getElementById(`${prefix}StaffSuggestedBankDetail`);
+      const bankIdInput = document.getElementById(`${prefix}StaffBankId`);
+      if (bankNameEl && suggestions.bank) {
+        bankNameEl.textContent = suggestions.bank.name;
+        if (bankDetailEl) bankDetailEl.textContent = `(${suggestions.bank.city} • ${suggestions.bank.address || 'Central Facility'})`;
+        if (bankIdInput) bankIdInput.value = suggestions.bank.bankId || suggestions.bank.id;
+      }
+
+      // 2. Camp Staff Suggestion Box
+      const campNameEl = document.getElementById(`${prefix}SuggestedCampName`);
+      const campDetailEl = document.getElementById(`${prefix}SuggestedCampDetail`);
+      const campIdInput = document.getElementById(`${prefix}CampOrgActiveId`);
+      if (campNameEl && suggestions.camp) {
+        campNameEl.textContent = suggestions.camp.name;
+        if (campDetailEl) campDetailEl.textContent = `(Camp #${suggestions.camp.id} • ${suggestions.camp.city} • ${suggestions.camp.status})`;
+        if (campIdInput) campIdInput.value = suggestions.camp.id;
+      }
+
+      // 3. Hospital Coordinator Suggestion Box
+      const hospNameEl = document.getElementById(`${prefix}SuggestedHospitalName`);
+      const hospDetailEl = document.getElementById(`${prefix}SuggestedHospitalDetail`);
+      if (hospNameEl && suggestions.hospital) {
+        hospNameEl.textContent = suggestions.hospital.name;
+        if (hospDetailEl) hospDetailEl.textContent = `(${suggestions.hospital.city} • Emergency Logistics Partner)`;
+      }
+
+      // 4. Doctor Clinical Affiliation Pills
+      const docHospText = document.getElementById(`${prefix}DocHospPillText`);
+      const docBankText = document.getElementById(`${prefix}DocBankPillText`);
+      if (docHospText && suggestions.hospital) {
+        docHospText.textContent = `${suggestions.hospital.name} (Transfusion Unit)`;
+      }
+      if (docBankText && suggestions.bank) {
+        docBankText.textContent = `${suggestions.bank.name} (Screening)`;
+      }
+    }
+
+    applySuggestedBank(context = 'landing') {
+      const prefix = context === 'landing' ? 'landing' : 'modal';
+      const cityInput = document.getElementById(context === 'landing' ? 'landingRegCity' : 'regCity');
+      const city = (cityInput?.value || 'Ahmedabad').trim() || 'Ahmedabad';
+      const sug = this.computeSmartFacilitySuggestion('Blood Bank Staff', city);
+      if (sug.bank) {
+        const inputOrg = document.getElementById(`${prefix}StaffRegOrg`);
+        const inputBankId = document.getElementById(`${prefix}StaffBankId`);
+        if (inputOrg) inputOrg.value = sug.bank.name;
+        if (inputBankId) inputBankId.value = sug.bank.bankId || sug.bank.id;
+        window.showToast('info', 'Bank Assigned', `Selected ${sug.bank.name} (${sug.bank.city})`);
+      }
+    }
+
+    applySuggestedCamp(context = 'landing') {
+      const prefix = context === 'landing' ? 'landing' : 'modal';
+      const cityInput = document.getElementById(context === 'landing' ? 'landingRegCity' : 'regCity');
+      const city = (cityInput?.value || 'Ahmedabad').trim() || 'Ahmedabad';
+      const sug = this.computeSmartFacilitySuggestion('Camp Staff', city);
+      if (sug.camp) {
+        const inputCamp = document.getElementById(`${prefix}CampOrgName`);
+        const inputCampId = document.getElementById(`${prefix}CampOrgActiveId`);
+        if (inputCamp) inputCamp.value = sug.camp.name;
+        if (inputCampId) inputCampId.value = sug.camp.id;
+        window.showToast('info', 'Camp Assigned', `Assigned to ${sug.camp.name} (Camp #${sug.camp.id})`);
+      }
+    }
+
+    applySuggestedHospital(context = 'landing') {
+      const prefix = context === 'landing' ? 'landing' : 'modal';
+      const cityInput = document.getElementById(context === 'landing' ? 'landingRegCity' : 'regCity');
+      const city = (cityInput?.value || 'Ahmedabad').trim() || 'Ahmedabad';
+      const sug = this.computeSmartFacilitySuggestion('Hospital Coordinator', city);
+      if (sug.hospital) {
+        const inputHosp = document.getElementById(`${prefix}HospitalName`);
+        if (inputHosp) inputHosp.value = sug.hospital.name;
+        window.showToast('info', 'Hospital Linked', `Linked to ${sug.hospital.name}`);
+      }
+    }
+
+    applyDoctorAffiliation(type, context = 'landing') {
+      const prefix = context === 'landing' ? 'landing' : 'modal';
+      const cityInput = document.getElementById(context === 'landing' ? 'landingRegCity' : 'regCity');
+      const city = (cityInput?.value || 'Ahmedabad').trim() || 'Ahmedabad';
+      const sug = this.computeSmartFacilitySuggestion('Doctor', city);
+      const inputHosp = document.getElementById(`${prefix}DoctorHospital`);
+      if (!inputHosp) return;
+      if (type === 'hospital' && sug.hospital) {
+        inputHosp.value = `${sug.hospital.name} Transfusion Medicine`;
+        window.showToast('info', 'Affiliation Updated', `Doctor attached to ${sug.hospital.name}`);
+      } else if (type === 'bank' && sug.bank) {
+        inputHosp.value = `${sug.bank.name} Screening Station`;
+        window.showToast('info', 'Affiliation Updated', `Doctor attached to ${sug.bank.name}`);
+      }
+    }
+
     handleRoleFieldToggle(role, context = 'landing') {
       const prefix = context === 'landing' ? 'landing' : 'modal';
       const donorBox = document.getElementById(`${prefix}DonorRegFields`);
@@ -257,12 +416,14 @@
       } else if (role === 'Hospital Coordinator') {
         if (hospitalBox) hospitalBox.style.display = 'block';
         if (bgWrap) bgWrap.style.display = 'none';
-      } else if (role === 'Camp Organizer') {
+      } else if (role === 'Camp Organizer' || role === 'Camp Staff') {
         if (campOrgBox) campOrgBox.style.display = 'block';
         if (bgWrap) bgWrap.style.display = 'none';
       } else if (role === 'Super Admin') {
         if (bgWrap) bgWrap.style.display = 'none';
       }
+
+      this.updateRegistrationSuggestions(context);
     }
 
     setupLandingAuthListeners() {
@@ -286,13 +447,43 @@
         if (paneSignUp) paneSignUp.style.display = 'block';
       });
 
-      // 2. Dynamic Field Toggles on Landing Sign Up Role Change
+      // 2. Interactive Role Toggle Cards synced with Select Dropdown
+      const roleCards = document.querySelectorAll('#landingRoleToggleGrid .role-toggle-card');
+      const roleSelect = document.getElementById('landingLoginRole');
+
+      roleCards.forEach(card => {
+        card.addEventListener('click', () => {
+          const selectedRole = card.getAttribute('data-role');
+          roleCards.forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          const radio = card.querySelector('input[type="radio"]');
+          if (radio) radio.checked = true;
+          if (roleSelect) roleSelect.value = selectedRole;
+        });
+      });
+
+      roleSelect?.addEventListener('change', () => {
+        const val = roleSelect.value;
+        roleCards.forEach(c => {
+          const isMatch = c.getAttribute('data-role') === val;
+          c.classList.toggle('active', isMatch);
+          const radio = c.querySelector('input[type="radio"]');
+          if (radio) radio.checked = isMatch;
+        });
+      });
+
+      // 3. Dynamic Field Toggles on Landing Sign Up Role Change
       const landingRegRole = document.getElementById('landingRegRole');
       landingRegRole?.addEventListener('change', () => {
         this.handleRoleFieldToggle(landingRegRole.value, 'landing');
       });
 
-      // 3. Password visibility toggle
+      const landingRegCity = document.getElementById('landingRegCity');
+      landingRegCity?.addEventListener('input', () => this.updateRegistrationSuggestions('landing'));
+      landingRegCity?.addEventListener('change', () => this.updateRegistrationSuggestions('landing'));
+      this.updateRegistrationSuggestions('landing');
+
+      // 4. Password visibility toggle
       const toggleLandingPwd = document.getElementById('toggleLandingPassword');
       const landingLoginPwd = document.getElementById('landingLoginPassword');
       toggleLandingPwd?.addEventListener('click', () => {
@@ -305,64 +496,79 @@
         if (eyeClosed) eyeClosed.style.display = isPassword ? 'block' : 'none';
       });
 
-      // 4. Landing Sign In Form Submit
+      // 5. Landing Sign In Form Submit
       const formLandingSignIn = document.getElementById('formLandingSignIn');
       formLandingSignIn?.addEventListener('submit', async (e) => {
         e.preventDefault();
         await this.handleLandingLogin();
       });
 
-      // 5. Landing Sign Up Form Submit
+      // 6. Landing Sign Up Form Submit
       const formLandingSignUp = document.getElementById('formLandingSignUp');
       formLandingSignUp?.addEventListener('submit', async (e) => {
         e.preventDefault();
         await this.handleLandingRegister();
       });
+
+      // 7. Browser Popstate & Hash Navigation Router
+      window.addEventListener('popstate', () => this.handleUrlRouting());
+    }
+
+    fillQuickLogin(roleKey) {
+      const emailInput = document.getElementById('landingLoginEmail');
+      const pwdInput = document.getElementById('landingLoginPassword');
+      const roleSelect = document.getElementById('landingLoginRole');
+
+      if (!emailInput || !pwdInput) return;
+      pwdInput.value = 'password123';
+
+      let targetRole = 'Hospital Coordinator';
+      if (roleKey === 'hospital_coordinator') {
+        emailInput.value = 'coordinator.hospital@civil.org';
+        targetRole = 'Hospital Coordinator';
+      } else if (roleKey === 'blood_bank_staff') {
+        emailInput.value = 'kavita.staff@raktsetu.org';
+        targetRole = 'Blood Bank Staff';
+      } else if (roleKey === 'camp_staff') {
+        emailInput.value = 'organizer.meera@redcross.org';
+        targetRole = 'Camp Staff';
+      } else {
+        emailInput.value = 'rahul.sharma@donor.org';
+        targetRole = 'Donor / General User';
+      }
+
+      if (roleSelect) {
+        roleSelect.value = targetRole;
+        roleSelect.dispatchEvent(new Event('change'));
+      }
+
+      window.showToast('info', 'Credentials Loaded', 'Role: ' + targetRole);
     }
 
     async handleLandingLogin() {
       const email = document.getElementById('landingLoginEmail')?.value.trim();
       const password = document.getElementById('landingLoginPassword')?.value;
-      const role = document.getElementById('landingLoginRole')?.value || 'Blood Donor';
+      const role = document.getElementById('landingLoginRole')?.value || 'Donor / General User';
       const rememberMe = document.getElementById('landingRememberMe')?.checked !== false;
 
       if (!email || !password) {
-        window.showToast('error', 'Missing Information', 'Please provide your email address and password.');
+        window.showToast('error', 'Missing Information', 'Please provide your email address/username and password.');
         return;
       }
 
       const submitBtn = document.getElementById('btnLandingSignIn');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Authenticating...';
+        submitBtn.innerHTML = 'Verifying Role & Credentials...';
       }
 
       try {
-        let user = null;
-        try {
-          const res = await this.api.login({ email, password, role });
-          if (res && res.success && res.user) {
-            user = res.user;
-          }
-        } catch (apiErr) {
-          console.warn('[HemaCare OS Auth] API login warning, falling back to cached session:', apiErr);
+        const res = await this.api.login({ email, password, role });
+        if (!res || !res.success || !res.user) {
+          throw new Error((res && res.message) || 'Unauthorized role selection or invalid credentials.');
         }
 
-        if (!user) {
-          // Fallback verification
-          let name = email.split('@')[0].replace(/[._-]/g, ' ');
-          name = name.charAt(0).toUpperCase() + name.slice(1);
-          user = {
-            id: Math.floor(1000 + Math.random() * 9000),
-            name: role === 'Doctor' ? `Dr. ${name}` : name,
-            email,
-            role,
-            city: 'Ahmedabad',
-            bloodGroup: 'B+',
-            verificationStatus: 'Verified'
-          };
-        }
-
+        const user = res.user;
         this.currentUser = user;
         this.isAuthenticated = true;
 
@@ -382,13 +588,14 @@
         this.renderAll();
         window.showToast('success', 'Authenticated Successfully', `Welcome back, ${user.name}! (${user.role})`);
       } catch (err) {
-        window.showToast('error', 'Sign In Failed', err.message || 'Invalid credentials.');
+        const msg = err.message || 'Authentication failed.';
+        window.showToast('error', 'Authentication Rejected', msg);
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-            <span>🚀 Sign In to HemaCare OS</span>
+            <span>🚀 Sign In with Role Authorization</span>
           `;
         }
       }
@@ -413,7 +620,8 @@
       const clinicalExperience = parseInt(document.getElementById('landingDoctorExp')?.value, 10) || 8;
 
       // Staff dynamic fields
-      const staffOrg = document.getElementById('landingStaffRegOrg')?.value.trim() || 'Red Cross Blood Center';
+      const staffOrg = document.getElementById('landingStaffRegOrg')?.value.trim() || 'Red Cross Blood Bank';
+      const staffBankId = document.getElementById('landingStaffBankId')?.value;
       const staffId = document.getElementById('landingStaffRegCampId')?.value.trim() || 'STF-4001';
 
       // Hospital Coordinator dynamic fields
@@ -457,9 +665,10 @@
           hospitalAffiliation: role === 'Doctor' ? hospitalAffiliation : (role === 'Hospital Coordinator' ? hospitalName : null),
           hospital_name: role === 'Hospital Coordinator' ? hospitalName : null,
           clinicalExperience: role === 'Doctor' ? clinicalExperience : null,
-          organization: role === 'Blood Bank Staff' ? staffOrg : (role === 'Camp Organizer' ? campOrgName : null),
+          organization: role === 'Blood Bank Staff' ? staffOrg : (role === 'Camp Organizer' || role === 'Camp Staff' ? campOrgName : (role === 'Hospital Coordinator' ? hospitalName : null)),
+          bankId: staffBankId ? parseInt(staffBankId, 10) : (role === 'Blood Bank Staff' ? 4001 : null),
           staffId: role === 'Blood Bank Staff' ? staffId : (role === 'Hospital Coordinator' ? hospitalCoordId : null),
-          active_camp_id: role === 'Camp Organizer' ? campOrgActiveId : null
+          active_camp_id: (role === 'Camp Organizer' || role === 'Camp Staff') ? campOrgActiveId : null
         };
 
         try {
@@ -483,7 +692,10 @@
             age,
             gender,
             medicalRegNo,
-            organization: staffOrg,
+            organization: regPayload.organization,
+            bankId: regPayload.bankId,
+            assignedCampId: regPayload.active_camp_id,
+            hospitalAffiliation: regPayload.hospitalAffiliation,
             verificationStatus: 'Verified'
           };
         }
@@ -494,6 +706,7 @@
         if (window.localStore) {
           window.localStore.currentUser = user;
           window.localStore.isAuthenticated = true;
+
           // If registered as Blood Donor, add to local donors list
           if (role === 'Blood Donor' && !window.localStore.donors.some(d => d.email === email)) {
             window.localStore.donors.unshift({
@@ -510,6 +723,26 @@
               eligibility_status: 'Eligible',
               last_donation_date: new Date().toISOString().split('T')[0]
             });
+          } else if (role !== 'Blood Donor') {
+            // Add staff member to local staff collection
+            if (!window.localStore.staff) window.localStore.staff = [];
+            if (!window.localStore.staff.some(s => s.email === email)) {
+              window.localStore.staff.unshift({
+                id: user.id,
+                staffId: user.id,
+                name,
+                role,
+                city,
+                email,
+                phone,
+                organization: regPayload.organization,
+                bankId: regPayload.bankId,
+                assignedCampId: regPayload.active_camp_id,
+                hospitalAffiliation: regPayload.hospitalAffiliation,
+                medicalRegNo,
+                verificationStatus: 'Verified'
+              });
+            }
           }
           window.saveStore();
         }
@@ -702,6 +935,11 @@
         }
       });
 
+      const regCity = document.getElementById('regCity');
+      regCity?.addEventListener('input', () => this.updateRegistrationSuggestions('modal'));
+      regCity?.addEventListener('change', () => this.updateRegistrationSuggestions('modal'));
+      this.updateRegistrationSuggestions('modal');
+
       document.getElementById('formSignUp')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('regName')?.value.trim();
@@ -712,14 +950,63 @@
         const bloodGroup = document.getElementById('regBloodGroup')?.value || 'B+';
         const password = document.getElementById('regPassword')?.value;
 
+        // Dynamic fields
+        const staffOrg = document.getElementById('modalStaffRegOrg')?.value.trim() || 'Red Cross Blood Bank';
+        const staffBankId = document.getElementById('modalStaffBankId')?.value;
+        const hospitalName = document.getElementById('modalHospitalName')?.value.trim() || 'Civil Hospital';
+        const campOrgName = document.getElementById('modalCampOrgName')?.value.trim() || 'Red Cross Gujarat';
+        const campId = parseInt(document.getElementById('modalCampOrgActiveId')?.value, 10) || 6004;
+        const doctorHosp = document.getElementById('modalDoctorHospital')?.value.trim() || 'Civil Hospital';
+        const doctorReg = document.getElementById('modalDoctorRegNum')?.value.trim() || 'GMC-98234';
+        const doctorSpec = document.getElementById('modalDoctorSpecialization')?.value.trim() || 'Hematology';
+
         if (!name || !email || !password) return;
 
-        const res = await this.api.register({ name, email, phone, city, role, bloodGroup, password });
+        const regPayload = {
+          name,
+          email,
+          phone,
+          city,
+          role,
+          bloodGroup,
+          password,
+          bankId: staffBankId ? parseInt(staffBankId, 10) : (role === 'Blood Bank Staff' ? 4001 : null),
+          organization: role === 'Blood Bank Staff' ? staffOrg : (role === 'Camp Organizer' || role === 'Camp Staff' ? campOrgName : (role === 'Hospital Coordinator' ? hospitalName : null)),
+          assignedCampId: (role === 'Camp Organizer' || role === 'Camp Staff') ? campId : null,
+          hospitalAffiliation: role === 'Doctor' ? doctorHosp : (role === 'Hospital Coordinator' ? hospitalName : null),
+          medicalRegNo: role === 'Doctor' ? doctorReg : null,
+          specialization: role === 'Doctor' ? doctorSpec : null
+        };
+
+        const res = await this.api.register(regPayload);
         if (res && res.success) {
-          this.currentUser = res.user;
+          const user = res.user;
+          this.currentUser = user;
           this.isAuthenticated = true;
-          window.localStore.currentUser = res.user;
+          window.localStore.currentUser = user;
           window.localStore.isAuthenticated = true;
+
+          if (role !== 'Blood Donor') {
+            if (!window.localStore.staff) window.localStore.staff = [];
+            if (!window.localStore.staff.some(s => s.email === email)) {
+              window.localStore.staff.unshift({
+                id: user.id,
+                staffId: user.id,
+                name,
+                role,
+                city,
+                email,
+                phone,
+                organization: regPayload.organization,
+                bankId: regPayload.bankId,
+                assignedCampId: regPayload.assignedCampId,
+                hospitalAffiliation: regPayload.hospitalAffiliation,
+                medicalRegNo: regPayload.medicalRegNo,
+                verificationStatus: 'Verified'
+              });
+            }
+          }
+
           window.saveStore();
           this.closeModal('modalAuth');
           this.showAppDashboard();
@@ -1662,6 +1949,49 @@
 
       this.renderStaffDonorsTable();
       this.renderPermanentDonorsTable();
+      this.renderStaffRequestsTable();
+    }
+
+    renderStaffRequestsTable() {
+      const tbody = document.getElementById('staffRequestsTableBody');
+      if (!tbody) return;
+
+      const requests = window.localStore.requests || [];
+      if (requests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:16px;">No active requisitions recorded.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = requests.map(r => {
+        let urgencyBadge = '<span class="status-badge-routine">Routine</span>';
+        if (r.urgency === 'Emergency') urgencyBadge = '<span class="status-badge-emergency">🔴 Code Red</span>';
+        else if (r.urgency === 'Urgent') urgencyBadge = '<span class="status-badge-urgent">🟡 Code Amber</span>';
+
+        let dispatchBadge = '<span class="status-badge-chip">Pending</span>';
+        if (r.status === 'Dispatched' || r.status === 'Approved/Dispatched') {
+          dispatchBadge = '<span class="status-badge-chip status-badge-cleared">🚚 In Transit</span>';
+        } else if (r.status === 'Delivered' || r.status === 'Fulfilled') {
+          dispatchBadge = '<span class="status-badge-chip status-badge-eligible">✓ Fulfilled</span>';
+        }
+
+        return `
+          <tr>
+            <td><span style="font-family:var(--font-family-mono); font-weight:700;">#REQ-${r.id}</span></td>
+            <td><strong>${r.hospital_name || r.location || 'Civil Hospital'}</strong></td>
+            <td>${r.patient_name || r.name || 'Emergency Patient'}</td>
+            <td><span class="blood-group-badge" style="font-size:11px; padding:2px 6px;">${r.bloodGroup || r.blood_group}</span></td>
+            <td><strong>${r.units || 1} Unit(s)</strong></td>
+            <td>${urgencyBadge}</td>
+            <td>${dispatchBadge}</td>
+            <td><span style="font-size:12px; color:var(--text-muted);">${r.matchedDonorName ? 'Matched: ' + r.matchedDonorName : 'Cold Storage Stock Allocated'}</span></td>
+            <td style="text-align:right;">
+              <button class="btn btn-sm btn-primary" onclick="window.HemaCareApp?.openDispatchModal(${r.id})">
+                <span>Dispatch / Allocate</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     renderStaffDonorsTable(filterType = 'ALL') {
@@ -1957,6 +2287,461 @@
       if (kpiDon) kpiDon.textContent = totalDonors;
 
       this.renderSuperAdminAuditTable();
+      this.renderSuperAdminStaffTable();
+    }
+
+    filterOperators(role) {
+      this.currentOperatorFilter = role;
+      const tabs = document.querySelectorAll('#operatorFilterTabs .op-tab-btn');
+      tabs.forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-filter') === role);
+      });
+      this.renderSuperAdminStaffTable(role);
+    }
+
+    renderSuperAdminStaffTable(filterRole = null) {
+      const activeFilter = filterRole || this.currentOperatorFilter || 'all';
+      const tbody = document.getElementById('superAdminStaffTableBody');
+      if (!tbody) return;
+
+      const staffList = window.localStore?.staff || [];
+      const donorList = window.localStore?.donors || [];
+
+      // Calculate counts
+      const countBank = staffList.filter(s => (s.role || '').toLowerCase().includes('bank') || (s.role || '').toLowerCase().includes('blood bank staff')).length;
+      const countDoc = staffList.filter(s => (s.role || '').toLowerCase().includes('doctor')).length;
+      const countHosp = staffList.filter(s => (s.role || '').toLowerCase().includes('hospital') || (s.role || '').toLowerCase().includes('coordinator')).length;
+      const countCamp = staffList.filter(s => (s.role || '').toLowerCase().includes('camp')).length;
+      const countDonor = donorList.length;
+      const countAll = staffList.length + countDonor;
+
+      const elAll = document.getElementById('countAllOps');
+      const elBank = document.getElementById('countBankStaff');
+      const elDoc = document.getElementById('countDocStaff');
+      const elHosp = document.getElementById('countHospStaff');
+      const elCamp = document.getElementById('countCampStaff');
+      const elDonor = document.getElementById('countDonorOps');
+
+      if (elAll) elAll.textContent = countAll;
+      if (elBank) elBank.textContent = countBank;
+      if (elDoc) elDoc.textContent = countDoc;
+      if (elHosp) elHosp.textContent = countHosp;
+      if (elCamp) elCamp.textContent = countCamp;
+      if (elDonor) elDonor.textContent = countDonor;
+
+      let combinedOps = [];
+
+      // Add staff
+      staffList.forEach(s => {
+        const normRole = (s.role || '').trim();
+        let facilityType = 'bank';
+        let facilityName = s.organization || s.bankName || s.hospitalAffiliation || s.campName || 'Central Hub';
+        let facilityBadgeClass = 'facility-badge-bank';
+
+        if (normRole.toLowerCase().includes('doctor')) {
+          facilityType = 'hosp';
+          facilityBadgeClass = 'facility-badge-hosp';
+        } else if (normRole.toLowerCase().includes('hospital')) {
+          facilityType = 'hosp';
+          facilityBadgeClass = 'facility-badge-hosp';
+        } else if (normRole.toLowerCase().includes('camp')) {
+          facilityType = 'camp';
+          facilityBadgeClass = 'facility-badge-camp';
+        } else if (normRole.toLowerCase().includes('bank')) {
+          facilityType = 'bank';
+          facilityBadgeClass = 'facility-badge-bank';
+        }
+
+        combinedOps.push({
+          id: s.id || s.staffId || 3000,
+          name: s.name || 'Clinical Operator',
+          role: normRole,
+          rawRoleType: normRole,
+          city: s.city || 'Ahmedabad',
+          facilityName: facilityName,
+          facilityBadgeClass: facilityBadgeClass,
+          facilityType: facilityType,
+          contact: s.phone || s.phone_number || '9876543210',
+          email: s.email || 'operator@raktsetu.org',
+          credentials: s.medicalRegNo ? `Reg: ${s.medicalRegNo}` : (s.specialization || 'Clinical Staff'),
+          status: s.verificationStatus || 'Verified Station',
+          isStaff: true
+        });
+      });
+
+      // Add donors if filter is 'all' or 'Donor'
+      if (activeFilter === 'all' || activeFilter === 'Donor') {
+        donorList.forEach(d => {
+          combinedOps.push({
+            id: d.id,
+            name: d.name,
+            role: 'Blood Donor',
+            rawRoleType: 'Donor',
+            city: d.city || 'Ahmedabad',
+            facilityName: `Group ${d.bloodGroup || 'O+'} • ${d.donorType || 'One-Time Donor'}`,
+            facilityBadgeClass: 'facility-badge-donor',
+            facilityType: 'donor',
+            contact: d.phone || d.mobile_number || '9876543210',
+            email: d.email || 'donor@raktsetu.org',
+            credentials: `Blood Group: ${d.bloodGroup || 'O+'}`,
+            status: d.eligibilityStatus || 'Eligible',
+            isStaff: false
+          });
+        });
+      }
+
+      // Filter by active role tab
+      let filtered = combinedOps;
+      if (activeFilter !== 'all') {
+        filtered = combinedOps.filter(op => {
+          const r = (op.role || '').toLowerCase();
+          const target = activeFilter.toLowerCase();
+          if (target === 'donor') return r.includes('donor');
+          if (target.includes('bank')) return r.includes('bank');
+          if (target.includes('doctor')) return r.includes('doctor');
+          if (target.includes('hospital')) return r.includes('hospital');
+          if (target.includes('camp')) return r.includes('camp');
+          return true;
+        });
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">No operators found in this filter category.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(op => {
+        const initials = op.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        return `
+          <tr>
+            <td>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="user-avatar" style="width:32px; height:32px; font-size:12px; font-weight:700;">${initials}</div>
+                <div>
+                  <div style="font-weight:700; color:#ffffff;">${escapeHtml(op.name)}</div>
+                  <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-family-mono);">ID #${op.id}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="pill-tag">${escapeHtml(op.role)}</span>
+            </td>
+            <td>
+              <span class="${op.facilityBadgeClass}">
+                ${op.facilityType === 'bank' ? '🏥' : (op.facilityType === 'camp' ? '🎪' : (op.facilityType === 'hosp' ? '🏨' : '🩸'))}
+                ${escapeHtml(op.facilityName)}
+              </span>
+            </td>
+            <td>
+              <span style="font-weight:600; color:var(--text-secondary);">${escapeHtml(op.city)}</span>
+            </td>
+            <td>
+              <div style="font-size:12px; color:var(--text-primary);">${escapeHtml(op.contact)}</div>
+              <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(op.credentials)}</div>
+            </td>
+            <td>
+              <span class="status-badge-chip status-badge-cleared">${escapeHtml(op.status)}</span>
+            </td>
+            <td style="text-align:right;">
+              ${op.isStaff ? `
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.HemaCareApp?.openReassignStaffModal('${op.id}')" style="padding:4px 10px; font-size:11.5px;">
+                  🔄 Reassign Station
+                </button>
+              ` : `
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.HemaCareApp?.openDonorDetailModal('${op.id}')" style="padding:4px 10px; font-size:11.5px;">
+                  📋 View Donor
+                </button>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    openAddStaffModal() {
+      this.openModal('modalSuperAdminAddStaff');
+      this.updateAdminStaffSuggestions();
+    }
+
+    updateAdminStaffSuggestions() {
+      const roleSelect = document.getElementById('adminStaffRole');
+      const citySelect = document.getElementById('adminStaffCity');
+      const role = roleSelect?.value || 'Blood Bank Staff';
+      const city = citySelect?.value || 'Ahmedabad';
+      const sug = this.computeSmartFacilitySuggestion(role, city);
+
+      const docExtra = document.getElementById('adminDoctorExtraRow');
+      if (docExtra) {
+        docExtra.style.display = role === 'Doctor' ? 'grid' : 'none';
+      }
+
+      const nameEl = document.getElementById('adminSuggestedFacilityName');
+      const reasonEl = document.getElementById('adminSuggestedFacilityReason');
+      const sugBox = document.getElementById('adminStaffSuggestionBox');
+
+      if (sugBox) {
+        sugBox.className = 'smart-suggestion-box';
+        if (role === 'Camp Staff') sugBox.classList.add('camp-suggestion');
+        if (role === 'Hospital Coordinator') sugBox.classList.add('hospital-suggestion');
+        if (role === 'Doctor') sugBox.classList.add('doctor-suggestion');
+      }
+
+      if (role === 'Blood Bank Staff' && sug.bank) {
+        if (nameEl) nameEl.textContent = sug.bank.name;
+        if (reasonEl) reasonEl.textContent = `🎯 Optimal Regional Match: Central blood repository in ${sug.bank.city} (${sug.bank.address}). Inventory load: ${sug.bank.inventoryLoad || 'High'}.`;
+      } else if (role === 'Camp Staff' && sug.camp) {
+        if (nameEl) nameEl.textContent = `${sug.camp.name} (Camp #${sug.camp.id})`;
+        if (reasonEl) reasonEl.textContent = `🎪 Urgent Drive Staffing: ${sug.camp.name} in ${sug.camp.city} (${sug.camp.status}). Incharge: ${sug.camp.inchargeStaff || 'Meera Joshi'}.`;
+      } else if (role === 'Hospital Coordinator' && sug.hospital) {
+        if (nameEl) nameEl.textContent = sug.hospital.name;
+        if (reasonEl) reasonEl.textContent = `🏨 Strategic Partner: Key tertiary hospital in ${sug.hospital.city}. Dispatches and cold-chain requisitions coordination desk.`;
+      } else if (role === 'Doctor') {
+        if (nameEl) nameEl.textContent = `${sug.hospital ? sug.hospital.name : 'Civil Hospital'} / ${sug.bank ? sug.bank.name : 'Red Cross'}`;
+        if (reasonEl) reasonEl.textContent = `🩺 Medical Officer Assignment: Supervises pre-screening and hematology verification in ${city} district.`;
+      }
+    }
+
+    applyAdminSuggestion() {
+      const roleSelect = document.getElementById('adminStaffRole');
+      const citySelect = document.getElementById('adminStaffCity');
+      const role = roleSelect?.value || 'Blood Bank Staff';
+      const city = citySelect?.value || 'Ahmedabad';
+      const sug = this.computeSmartFacilitySuggestion(role, city);
+
+      const facilityInput = document.getElementById('adminStaffFacilityName');
+      const bankIdInput = document.getElementById('adminStaffBankId');
+      const campIdInput = document.getElementById('adminStaffCampId');
+      const hospInput = document.getElementById('adminStaffHospitalName');
+
+      if (role === 'Blood Bank Staff' && sug.bank) {
+        if (facilityInput) facilityInput.value = sug.bank.name;
+        if (bankIdInput) bankIdInput.value = sug.bank.bankId || sug.bank.id;
+        if (campIdInput) campIdInput.value = '';
+        if (hospInput) hospInput.value = '';
+      } else if (role === 'Camp Staff' && sug.camp) {
+        if (facilityInput) facilityInput.value = sug.camp.name;
+        if (campIdInput) campIdInput.value = sug.camp.id;
+        if (bankIdInput) bankIdInput.value = '';
+        if (hospInput) hospInput.value = '';
+      } else if (role === 'Hospital Coordinator' && sug.hospital) {
+        if (facilityInput) facilityInput.value = sug.hospital.name;
+        if (hospInput) hospInput.value = sug.hospital.name;
+        if (bankIdInput) bankIdInput.value = '';
+        if (campIdInput) campIdInput.value = '';
+      } else if (role === 'Doctor' && sug.hospital) {
+        if (facilityInput) facilityInput.value = `${sug.hospital.name} Transfusion Medicine`;
+        if (hospInput) hospInput.value = sug.hospital.name;
+        if (bankIdInput) bankIdInput.value = sug.bank ? (sug.bank.bankId || sug.bank.id) : 4001;
+      }
+
+      window.showToast('success', 'Station Set', `Applied recommended station for ${role}`);
+    }
+
+    async handleAdminAddStaffSubmit(e) {
+      if (e) e.preventDefault();
+      const name = document.getElementById('adminStaffName')?.value.trim();
+      const email = document.getElementById('adminStaffEmail')?.value.trim();
+      const phone = document.getElementById('adminStaffPhone')?.value.trim() || '9876543210';
+      const role = document.getElementById('adminStaffRole')?.value || 'Blood Bank Staff';
+      const city = document.getElementById('adminStaffCity')?.value || 'Ahmedabad';
+      const facility = document.getElementById('adminStaffFacilityName')?.value.trim() || 'Red Cross Blood Bank';
+      const bankId = document.getElementById('adminStaffBankId')?.value;
+      const campId = document.getElementById('adminStaffCampId')?.value;
+      const hospitalAffiliation = document.getElementById('adminStaffHospitalName')?.value || (role === 'Hospital Coordinator' ? facility : null);
+      const medicalRegNo = document.getElementById('adminDoctorRegNo')?.value.trim() || (role === 'Doctor' ? 'GMC-54210' : null);
+      const specialization = document.getElementById('adminDoctorSpec')?.value.trim() || (role === 'Doctor' ? 'Transfusion Medicine' : null);
+
+      if (!name || !email) {
+        window.showToast('error', 'Required Fields', 'Please enter operator name and email.');
+        return;
+      }
+
+      const payload = {
+        name,
+        email,
+        phone,
+        role,
+        city,
+        organization: facility,
+        bankId: bankId ? parseInt(bankId, 10) : null,
+        assignedCampId: campId ? parseInt(campId, 10) : null,
+        hospitalAffiliation,
+        medicalRegNo,
+        specialization
+      };
+
+      try {
+        let createdStaff = null;
+        try {
+          const res = await this.api.addStaff(payload);
+          if (res && res.success && res.data) {
+            createdStaff = res.data;
+          }
+        } catch (apiErr) {
+          console.warn('[HemaCare OS Staff API] Fallback to localStore:', apiErr);
+        }
+
+        if (!createdStaff) {
+          createdStaff = {
+            id: Math.floor(3050 + Math.random() * 900),
+            name,
+            email,
+            phone,
+            role,
+            city,
+            organization: facility,
+            bankId: payload.bankId,
+            assignedCampId: payload.assignedCampId,
+            hospitalAffiliation: payload.hospitalAffiliation,
+            medicalRegNo: payload.medicalRegNo,
+            specialization: payload.specialization,
+            verificationStatus: 'Verified'
+          };
+        }
+
+        if (!window.localStore.staff) window.localStore.staff = [];
+        window.localStore.staff.unshift(createdStaff);
+        window.saveStore();
+
+        this.closeModal('modalSuperAdminAddStaff');
+        this.renderSuperAdminStaffTable();
+        window.showToast('success', 'Operator Provisioned', `${name} successfully assigned as ${role} at ${facility}!`);
+      } catch (err) {
+        window.showToast('error', 'Provisioning Failed', err.message);
+      }
+    }
+
+    openReassignStaffModal(staffId) {
+      const staff = (window.localStore.staff || []).find(s => (s.id == staffId || s.staffId == staffId));
+      if (!staff) {
+        window.showToast('error', 'Not Found', 'Operator record not found.');
+        return;
+      }
+
+      const idInput = document.getElementById('reassignStaffId');
+      if (idInput) idInput.value = staff.id || staff.staffId;
+
+      const summaryEl = document.getElementById('reassignStaffSummary');
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:15px; font-weight:800; color:#ffffff;">${escapeHtml(staff.name)}</div>
+              <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(staff.role)} • ID #${staff.id || staff.staffId}</div>
+            </div>
+            <span class="status-badge-chip status-badge-cleared">${escapeHtml(staff.city || 'Gujarat')}</span>
+          </div>
+          <div style="margin-top:8px; font-size:12.5px; color:var(--text-secondary); background:rgba(0,0,0,0.25); padding:6px 10px; border-radius:6px;">
+            Current Station: <strong>${escapeHtml(staff.organization || staff.bankName || staff.campName || staff.hospitalAffiliation || 'Unassigned')}</strong>
+          </div>
+        `;
+      }
+
+      const select = document.getElementById('reassignFacilitySelect');
+      if (select) {
+        select.innerHTML = '';
+
+        // Group 1: Blood Banks
+        const optGroupBanks = document.createElement('optgroup');
+        optGroupBanks.label = '🏥 Regional Blood Banks';
+        (window.localStore.bloodBanks || []).forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = `bank:${b.bankId || b.id}:${b.name}`;
+          opt.textContent = `${b.name} (${b.city} • Navrangpura/Ring Road)`;
+          optGroupBanks.appendChild(opt);
+        });
+        select.appendChild(optGroupBanks);
+
+        // Group 2: Donation Camps
+        const optGroupCamps = document.createElement('optgroup');
+        optGroupCamps.label = '🎪 Scheduled Donation Camps';
+        (window.localStore.camps || []).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = `camp:${c.id}:${c.name}`;
+          opt.textContent = `${c.name} (Camp #${c.id} • ${c.city} • ${c.status})`;
+          optGroupCamps.appendChild(opt);
+        });
+        select.appendChild(optGroupCamps);
+
+        // Group 3: Hospitals
+        const optGroupHosp = document.createElement('optgroup');
+        optGroupHosp.label = '🏨 Partner Hospitals';
+        (window.localStore.hospitals || []).forEach(h => {
+          const opt = document.createElement('option');
+          opt.value = `hosp:${h.id}:${h.name}`;
+          opt.textContent = `${h.name} (${h.city} • Emergency Partner)`;
+          optGroupHosp.appendChild(opt);
+        });
+        select.appendChild(optGroupHosp);
+      }
+
+      // Set smart relocation recommendation
+      const sug = this.computeSmartFacilitySuggestion(staff.role, staff.city || 'Ahmedabad');
+      const nameEl = document.getElementById('reassignSuggestedName');
+      const detailEl = document.getElementById('reassignSuggestedDetail');
+      if (nameEl && detailEl) {
+        if (staff.role === 'Camp Staff' && sug.camp) {
+          nameEl.textContent = sug.camp.name;
+          detailEl.textContent = `(Camp #${sug.camp.id} • ${sug.camp.city} • High Priority)`;
+          this.reassignRecommendationVal = `camp:${sug.camp.id}:${sug.camp.name}`;
+        } else if (staff.role === 'Hospital Coordinator' && sug.hospital) {
+          nameEl.textContent = sug.hospital.name;
+          detailEl.textContent = `(${sug.hospital.city} • Requisitions Hub)`;
+          this.reassignRecommendationVal = `hosp:${sug.hospital.id}:${sug.hospital.name}`;
+        } else {
+          nameEl.textContent = sug.bank ? sug.bank.name : 'Red Cross Blood Bank';
+          detailEl.textContent = `(${sug.bank ? sug.bank.city : 'Ahmedabad'} • Central Node)`;
+          this.reassignRecommendationVal = `bank:${sug.bank ? (sug.bank.bankId || sug.bank.id) : 4001}:${sug.bank ? sug.bank.name : 'Red Cross Blood Bank'}`;
+        }
+      }
+
+      this.openModal('modalSuperAdminReassignStaff');
+    }
+
+    applyReassignSuggestion() {
+      const select = document.getElementById('reassignFacilitySelect');
+      if (select && this.reassignRecommendationVal) {
+        select.value = this.reassignRecommendationVal;
+        window.showToast('info', 'Recommendation Selected', 'Optimal station selected in dropdown.');
+      }
+    }
+
+    async handleReassignStaffSubmit(e) {
+      if (e) e.preventDefault();
+      const staffId = parseInt(document.getElementById('reassignStaffId')?.value, 10);
+      const selectVal = document.getElementById('reassignFacilitySelect')?.value;
+      if (!staffId || !selectVal) return;
+
+      const [type, facilityId, facilityName] = selectVal.split(':');
+      const payload = {
+        bankId: type === 'bank' ? parseInt(facilityId, 10) : null,
+        assignedCampId: type === 'camp' ? parseInt(facilityId, 10) : null,
+        hospitalAffiliation: type === 'hosp' ? facilityName : null,
+        organization: facilityName
+      };
+
+      try {
+        try {
+          await this.api.reassignStaff(staffId, payload);
+        } catch (apiErr) {
+          console.warn('[HemaCare OS API] Local reassign fallback:', apiErr);
+        }
+
+        const staff = (window.localStore.staff || []).find(s => (s.id == staffId || s.staffId == staffId));
+        if (staff) {
+          staff.organization = facilityName;
+          if (type === 'bank') staff.bankId = parseInt(facilityId, 10);
+          if (type === 'camp') staff.assignedCampId = parseInt(facilityId, 10);
+          if (type === 'hosp') staff.hospitalAffiliation = facilityName;
+          window.saveStore();
+        }
+
+        this.closeModal('modalSuperAdminReassignStaff');
+        this.renderSuperAdminStaffTable();
+        window.showToast('success', 'Station Reassigned', `Staff #${staffId} redeployed to ${facilityName}!`);
+      } catch (err) {
+        window.showToast('error', 'Reassignment Failed', err.message);
+      }
     }
 
     renderSuperAdminAuditTable() {
@@ -2381,12 +3166,15 @@
       try {
         const health = await this.api.checkHealth();
         if (health && health.status === 'online') {
-          const [donorsRes, inventoryRes, requestsRes, campsRes, auditRes] = await Promise.all([
+          const [donorsRes, inventoryRes, requestsRes, campsRes, auditRes, staffRes, banksRes, hospitalsRes] = await Promise.all([
             this.api.getDonors(),
             this.api.getInventory(),
             this.api.getRequests(),
             this.api.getCamps(),
-            this.api.getAuditLogs()
+            this.api.getAuditLogs(),
+            this.api.getStaff(),
+            this.api.getBanks(),
+            this.api.getHospitals()
           ]);
 
           let hasChanges = false;
@@ -2426,6 +3214,27 @@
             }
           }
 
+          if (staffRes && staffRes.success && Array.isArray(staffRes.data)) {
+            if (JSON.stringify(window.localStore.staff) !== JSON.stringify(staffRes.data)) {
+              window.localStore.staff = staffRes.data;
+              hasChanges = true;
+            }
+          }
+
+          if (banksRes && banksRes.success && Array.isArray(banksRes.data)) {
+            if (JSON.stringify(window.localStore.bloodBanks) !== JSON.stringify(banksRes.data)) {
+              window.localStore.bloodBanks = banksRes.data;
+              hasChanges = true;
+            }
+          }
+
+          if (hospitalsRes && hospitalsRes.success && Array.isArray(hospitalsRes.data)) {
+            if (JSON.stringify(window.localStore.hospitals) !== JSON.stringify(hospitalsRes.data)) {
+              window.localStore.hospitals = hospitalsRes.data;
+              hasChanges = true;
+            }
+          }
+
           if (hasChanges || notifyOnSuccess) {
             window.saveStore();
             this.renderAll();
@@ -2456,41 +3265,108 @@
 
       if (this.smartMatches.length === 0) {
         grid.innerHTML = `
-          <div style="grid-column: 1 / -1; padding: var(--sp-4); text-align:center; color:var(--text-muted); font-size:13px; background:var(--surface-primary); border-radius:var(--radius-md); border:1px dashed var(--border-strong);">
-            ✓ All emergency hospital requests are matched or fulfilled. Real-time auto-matching listener active.
+          <div style="grid-column: 1 / -1; padding: 36px; text-align:center; color:var(--text-muted); font-size:13.5px; background:var(--surface-primary); border-radius:18px; border:1px dashed var(--border-default);">
+            <div style="font-size:24px; margin-bottom:6px;">✨</div>
+            <strong>All Emergency Requisitions Paired &amp; Dispatched</strong>
+            <div style="font-size:12px; margin-top:4px;">Autonomous proximity cross-matching listener is actively scanning live hospital requisitions.</div>
           </div>
         `;
         return;
       }
 
-      grid.innerHTML = this.smartMatches.map(m => `
-        <div class="smart-match-card">
-          <div class="smart-match-card-top">
-            <div>
-              <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Emergency Request #${m.request_id}</div>
-              <div style="font-size:14px; font-weight:800; color:var(--text-primary);">${m.patient_name} (${m.hospital_name})</div>
-            </div>
-            <span class="smart-match-blood-tag">${m.request_blood_group}</span>
-          </div>
+      grid.innerHTML = this.smartMatches.map(m => {
+        const urgency = m.urgency || 'Emergency';
+        const lowerUrgency = urgency.toLowerCase();
+        let urgencyClass = 'match-urgency-emergency';
+        let cardUrgencyClass = 'urgency-emergency';
 
-          <div class="smart-match-details">
-            <div>
-              <div style="color:var(--text-muted); font-size:10.5px; font-weight:700;">LOCATION</div>
-              <div style="font-weight:600;">${m.request_location} (${m.urgency})</div>
-            </div>
-            <div>
-              <div style="color:var(--text-muted); font-size:10.5px; font-weight:700;">MATCHED DONOR</div>
-              <div style="font-weight:600; color:var(--color-primary);">${m.matched_donor_name} (#${m.matched_donor_id})</div>
-            </div>
-          </div>
+        if (lowerUrgency.includes('urgent')) {
+          urgencyClass = 'match-urgency-urgent';
+          cardUrgencyClass = 'urgency-urgent';
+        } else if (lowerUrgency.includes('routine')) {
+          urgencyClass = 'match-urgency-routine';
+          cardUrgencyClass = 'urgency-routine';
+        }
 
-          <div class="smart-match-actions" style="margin-top:10px;">
-            <button class="btn-assign-match" onclick="window.HemaCareApp.linkAndDispatchMatch(${m.request_id}, ${m.matched_donor_id}, '${m.patient_name}', '${m.matched_donor_name}')">
-              <span>⚡ Assign &amp; Dispatch Request</span>
+        const safePatient = (m.patient_name || 'Patient').replace(/'/g, "\\'");
+        const safeDonor = (m.matched_donor_name || 'Donor').replace(/'/g, "\\'");
+
+        return `
+          <div class="smart-match-card ${cardUrgencyClass}">
+            <!-- Card Header: Urgency & Request ID -->
+            <div class="smart-match-card-top">
+              <span class="match-urgency-chip ${urgencyClass}">
+                <span class="urgency-pulse-dot"></span>
+                ${urgency}
+              </span>
+              <span class="match-req-id-pill">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                Req #${m.request_id}
+              </span>
+            </div>
+
+            <!-- Split Container: Patient <-> Flow <-> Donor -->
+            <div class="smart-match-split-container">
+              <!-- Left: Patient Requester -->
+              <div class="smart-entity-box">
+                <span class="smart-entity-tag tag-patient">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  Patient
+                </span>
+                <div class="smart-entity-name" title="${m.patient_name}">${m.patient_name}</div>
+                <div class="smart-entity-sub" title="${m.hospital_name}">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                  <span>${m.hospital_name}</span>
+                </div>
+                <div class="smart-entity-loc">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  <span>${m.request_location}</span>
+                </div>
+              </div>
+
+              <!-- Center: Compatibility Connector -->
+              <div class="smart-match-connector">
+                <div class="smart-blood-badge">
+                  <span>🩸</span>
+                  <span>${m.request_blood_group}</span>
+                </div>
+                <div class="smart-flow-icon">⇄</div>
+                <span class="smart-match-score-pill">100% Match</span>
+              </div>
+
+              <!-- Right: Verified Matched Donor -->
+              <div class="smart-entity-box">
+                <span class="smart-entity-tag tag-donor">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  Matched Donor
+                </span>
+                <div class="smart-entity-name name-donor" title="${m.matched_donor_name}">${m.matched_donor_name}</div>
+                <div class="smart-entity-sub">
+                  <span style="font-weight:700; color:var(--text-primary);">#${m.matched_donor_id}</span>
+                  <span>•</span>
+                  <span>${m.matched_donor_type || 'Verified'}</span>
+                </div>
+                <div class="smart-entity-loc">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                  <span>${m.matched_donor_phone || '9876543210'}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Clinical Indication -->
+            <div class="smart-match-clinical-bar">
+              <span class="smart-clinical-label">Clinical Indication:</span>
+              <span class="smart-clinical-val" title="${m.disease || 'Emergency Transfusion'}">${m.disease || 'Whole Blood Emergency Transfusion'}</span>
+            </div>
+
+            <!-- Action Dispatch Button -->
+            <button type="button" class="btn-assign-match-creative" onclick="window.HemaCareApp.linkAndDispatchMatch(${m.request_id}, ${m.matched_donor_id}, '${safePatient}', '${safeDonor}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <span>Assign &amp; Dispatch Request</span>
             </button>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     async linkAndDispatchMatch(requestId, donorId, patientName, donorName) {
@@ -2946,46 +3822,58 @@
         let donorId = document.getElementById('modalLogDonorId')?.value;
         const donorSearchText = document.getElementById('modalLogDonorSearch')?.value?.trim();
 
-        // Fallback: if hidden donorId is empty but staff typed a name, try to resolve exact donor
+        if (!donorId && !donorSearchText) {
+          window.showToast('error', 'Donor Name Required', 'Please enter a donor name or phone number.');
+          document.getElementById('modalLogDonorSearch')?.focus();
+          return;
+        }
+
+        // Check if typed name matches an existing donor in store
         if (!donorId && donorSearchText) {
           const donors = window.localStore.donors || [];
-          const found = donors.find(d => d.name.toLowerCase() === donorSearchText.toLowerCase() || String(d.id) === donorSearchText);
+          const found = donors.find(d => 
+            (d.name && d.name.toLowerCase() === donorSearchText.toLowerCase()) ||
+            (d.phone && d.phone.includes(donorSearchText)) ||
+            String(d.id) === donorSearchText
+          );
           if (found) {
             donorId = found.id;
             document.getElementById('modalLogDonorId').value = found.id;
           }
         }
 
-        if (!donorId) {
-          window.showToast('error', 'Select Donor', 'Please type and select a registered donor from the suggestions.');
-          document.getElementById('modalLogDonorSearch')?.focus();
-          return;
-        }
-
         const staffId = document.getElementById('modalLogStaffSelect')?.value || 3001;
         const campId = document.getElementById('modalLogCampSelect')?.value || null;
-        const bloodGroup = document.getElementById('modalLogBloodGroup')?.value;
-        const quality = document.getElementById('modalLogBloodQuality')?.value;
-        const date = document.getElementById('modalLogDonationDate')?.value;
+        const bloodGroup = document.getElementById('modalLogBloodGroup')?.value || 'O+';
+        const quality = document.getElementById('modalLogBloodQuality')?.value || 'Good';
+        const date = document.getElementById('modalLogDonationDate')?.value || new Date().toISOString().split('T')[0];
 
         try {
-          await this.api.createDonation({
-            donorId: parseInt(donorId, 10),
+          const res = await this.api.createDonation({
+            donorId: donorId ? parseInt(donorId, 10) : null,
+            donorName: donorSearchText,
             staffId: parseInt(staffId, 10),
             campId: campId ? parseInt(campId, 10) : null,
             bloodGroup,
             quality,
             date
           });
+
           this.closeModal('modalLogDonation');
           document.getElementById('modalLogDonationForm')?.reset();
           const badge = document.getElementById('modalLogDonorSelectedBadge');
           if (badge) { badge.style.display = 'none'; badge.innerHTML = ''; }
           document.getElementById('modalLogDonorId').value = '';
+          
           await this.syncWithBackend(false);
-          window.showToast('success', 'Donation Stored', `1 Unit of ${bloodGroup} committed to cold storage.`);
+
+          if (res && res.isNewDonorCreated) {
+            window.showToast('success', 'New Donor Registered & Stored', `New donor "${res.data?.donorName || donorSearchText}" created in DB & 1 Unit of ${bloodGroup} added to storage.`);
+          } else {
+            window.showToast('success', 'Donation Stored', `1 Unit of ${bloodGroup} committed to cold storage for ${res.data?.donorName || donorSearchText || 'Donor'}.`);
+          }
         } catch (err) {
-          window.showToast('error', 'Error', err.message);
+          window.showToast('error', 'Donation Error', err.message);
         }
       });
 
@@ -3113,6 +4001,15 @@
         } catch (err) {
           window.showToast('error', 'Error', err.message);
         }
+      });
+
+      // Super Operator Staff Management Form Listeners
+      document.getElementById('formSuperAdminAddStaff')?.addEventListener('submit', (e) => {
+        this.handleAdminAddStaffSubmit(e);
+      });
+
+      document.getElementById('formSuperAdminReassignStaff')?.addEventListener('submit', (e) => {
+        this.handleReassignStaffSubmit(e);
       });
 
       document.getElementById('btnCampViewCards')?.addEventListener('click', () => {
@@ -3266,7 +4163,7 @@
 
       try {
         await this.api.updateCamp(campId, { status: newStatus });
-      } catch (e) {}
+      } catch (e) { }
 
       if (window.localStore) {
         window.saveStore();

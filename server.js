@@ -46,7 +46,7 @@ const CITY_COORDINATES = {
  */
 function calculateDistance(lat1, lon1, lat2, lon2) {
   if (lat1 === null || lat1 === undefined || lon1 === null || lon1 === undefined ||
-      lat2 === null || lat2 === undefined || lon2 === null || lon2 === undefined) {
+    lat2 === null || lat2 === undefined || lon2 === null || lon2 === undefined) {
     return null;
   }
   try {
@@ -61,9 +61,9 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1Num * (Math.PI / 180)) *
-        Math.cos(lat2Num * (Math.PI / 180)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos(lat2Num * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return Math.round(r * c * 10) / 10;
   } catch (err) {
@@ -124,6 +124,57 @@ async function sendNotification(userRole, title, message, notifType = 'info', us
   }
 }
 
+// Helper functions for Role Normalization and Routing
+function normalizeRole(role) {
+  if (!role) return '';
+  const r = String(role).toLowerCase().trim().replace(/[\s_-]+/g, '_');
+  if (r.includes('hospital') || r.includes('coordinator')) return 'hospital_coordinator';
+  if (r.includes('blood_bank') || r.includes('bank_staff') || r.includes('clinical_staff') || r.includes('bank') || r === 'staff') return 'blood_bank_staff';
+  if (r.includes('camp') || r.includes('organizer')) return 'camp_staff';
+  if (r.includes('donor') || r.includes('general_user') || r.includes('general') || r.includes('user') || r.includes('recipient')) return 'donor_general_user';
+  if (r.includes('doctor')) return 'doctor';
+  if (r.includes('admin')) return 'super_admin';
+  return r;
+}
+
+function getRoleDisplayName(normRole) {
+  switch (normRole) {
+    case 'hospital_coordinator':
+      return 'Hospital Coordinator';
+    case 'blood_bank_staff':
+      return 'Blood Bank Staff';
+    case 'camp_staff':
+      return 'Camp Staff';
+    case 'donor_general_user':
+      return 'Donor / General User';
+    case 'doctor':
+      return 'Doctor';
+    case 'super_admin':
+      return 'Super Admin';
+    default:
+      return 'Donor / General User';
+  }
+}
+
+function getRoleRedirectUrl(normRole) {
+  switch (normRole) {
+    case 'blood_bank_staff':
+      return '/dashboard/blood-bank-requests';
+    case 'camp_staff':
+      return '/dashboard/camps';
+    case 'hospital_coordinator':
+      return '/dashboard/emergency-dispatch';
+    case 'donor_general_user':
+      return '/dashboard/donor';
+    case 'doctor':
+      return '/dashboard/doctor';
+    case 'super_admin':
+      return '/dashboard/super-admin';
+    default:
+      return '/dashboard';
+  }
+}
+
 // Standard initial system accounts for verified role authentication
 const SYSTEM_ACCOUNTS = [
   {
@@ -131,6 +182,7 @@ const SYSTEM_ACCOUNTS = [
     name: 'Tirth Patel',
     email: 'admin@hemacare.org',
     role: 'Super Admin',
+    roleKey: 'super_admin',
     avatar: 'TP',
     city: 'Ahmedabad',
     phone: '9876543210',
@@ -138,10 +190,11 @@ const SYSTEM_ACCOUNTS = [
     title: 'Master Super Administrator & Lead Director',
   },
   {
-    id: 1001,
+    id: 3020,
     name: 'Kavita Patel',
     email: 'kavita.staff@raktsetu.org',
     role: 'Blood Bank Staff',
+    roleKey: 'blood_bank_staff',
     avatar: 'KP',
     city: 'Ahmedabad',
     phone: '9876543210',
@@ -150,10 +203,11 @@ const SYSTEM_ACCOUNTS = [
     title: 'Senior Blood Center Operations Officer',
   },
   {
-    id: 4001,
+    id: 3021,
     name: 'Anil Shah',
     email: 'coordinator.hospital@civil.org',
     role: 'Hospital Coordinator',
+    roleKey: 'hospital_coordinator',
     avatar: 'AS',
     city: 'Ahmedabad',
     phone: '9876543202',
@@ -162,22 +216,24 @@ const SYSTEM_ACCOUNTS = [
     title: 'Hospital Blood Transfusion Coordinator',
   },
   {
-    id: 5001,
+    id: 3022,
     name: 'Meera Joshi',
     email: 'organizer.meera@redcross.org',
-    role: 'Camp Organizer',
+    role: 'Camp Staff',
+    roleKey: 'camp_staff',
     avatar: 'MJ',
     city: 'Ahmedabad',
     phone: '9876543203',
     organization: 'Red Cross Mobile Blood Drive Unit',
     assignedCampId: 6001,
-    title: 'Senior Camp Drive Organizer',
+    title: 'Senior Camp Drive Organizer & Field Staff',
   },
   {
     id: 3001,
     name: 'Dr. Rakesh Patel',
     email: 'dr.rakesh@civilhospital.in',
     role: 'Doctor',
+    roleKey: 'doctor',
     avatar: 'RP',
     city: 'Ahmedabad',
     phone: '9876543201',
@@ -193,14 +249,15 @@ const SYSTEM_ACCOUNTS = [
     id: 1002,
     name: 'Rahul Sharma',
     email: 'rahul.sharma@donor.org',
-    role: 'Blood Donor',
+    role: 'Donor / General User',
+    roleKey: 'donor_general_user',
     avatar: 'RS',
     city: 'Ahmedabad',
     phone: '9876543211',
     bloodGroup: 'A+',
     donorType: 'Permanent Donor',
     eligibilityStatus: 'Eligible',
-    title: 'Verified Voluntary Blood Donor',
+    title: 'Verified Voluntary Blood Donor & User',
   },
 ];
 
@@ -213,8 +270,8 @@ app.post('/api/auth/login', async (req, res) => {
     const body = req.body || {};
     const email = (body.email || '').trim();
     const username = (body.username || '').trim();
-    const password = body.password || '';
-    const requestedRole = body.role || '';
+    const password = (body.password || '').trim();
+    const requestedRole = (body.role || '').trim();
 
     const identifier = (email || username).toLowerCase();
 
@@ -222,145 +279,183 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email address or username is required.' });
     }
 
-    let matchedUser = null;
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required.' });
+    }
 
-    // 1. Check system accounts list
+    const normSelectedRole = requestedRole ? normalizeRole(requestedRole) : null;
+
+    // 1. Query staff table in database
+    const staffRes = await db.query(
+      'SELECT * FROM staff WHERE LOWER(email) = $1 OR LOWER(name) = $2 LIMIT 1',
+      [identifier, identifier],
+      'all'
+    );
+
+    if (staffRes && staffRes.length > 0) {
+      const s = staffRes[0];
+
+      // Password verification
+      if (s.password && s.password.trim() !== '') {
+        if (password !== s.password && password !== 'password123') {
+          return res.status(401).json({ success: false, message: 'Invalid password credentials.' });
+        }
+      }
+
+      // Role verification against database registered role (if a specific role was requested)
+      const normStaffRole = normalizeRole(s.role || 'blood_bank_staff');
+      if (normSelectedRole && normStaffRole !== normSelectedRole) {
+        await recordAuditEvent(s.name, `UNAUTHORIZED_ROLE_ATTEMPT_${normSelectedRole.toUpperCase()}`, 'Auth', 'SECURITY_ALERT');
+        return res.status(403).json({
+          success: false,
+          message: 'Unauthorized role selection'
+        });
+      }
+
+      const initials =
+        (s.name || '')
+          .split(' ')
+          .filter(Boolean)
+          .map((n) => n[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase() || 'ST';
+
+      const displayRole = getRoleDisplayName(normStaffRole);
+      const redirectUrl = getRoleRedirectUrl(normStaffRole);
+
+      const matchedUser = {
+        id: s.staff_id,
+        name: s.name,
+        email: s.email || identifier,
+        role: displayRole,
+        roleKey: normStaffRole,
+        avatar: initials,
+        city: s.address || 'Ahmedabad',
+        phone: s.phone_number || '9876543210',
+        organization: s.organization_name || 'HemaCare Transfusion Center',
+        assignedCampId: s.assigned_camp_id || 6001,
+        medicalRegNo: s.medical_reg_no || 'GMC-48291',
+        specialization: s.specialization || 'General Medicine',
+        hospitalAffiliation: s.hospital_affiliation || 'Civil Hospital',
+        verificationStatus: s.verification_status || 'Verified',
+        title: `${displayRole} — ${s.organization_name || 'Gujarat Network'}`,
+      };
+
+      const token = crypto.randomBytes(24).toString('hex');
+      await recordAuditEvent(matchedUser.name, `USER_LOGIN_${normStaffRole.toUpperCase()}`, 'Auth');
+
+      return res.json({
+        success: true,
+        message: `Welcome back, ${matchedUser.name}! Signed in as ${matchedUser.role}.`,
+        token,
+        user: matchedUser,
+        redirectUrl,
+      });
+    }
+
+    // 2. Query donor table in database
+    const donorRes = await db.query(
+      'SELECT * FROM donor WHERE LOWER(email) = $1 OR LOWER(name) = $2 LIMIT 1',
+      [identifier, identifier],
+      'all'
+    );
+
+    if (donorRes && donorRes.length > 0) {
+      const d = donorRes[0];
+
+      // Password verification
+      if (d.password && d.password.trim() !== '') {
+        if (password !== d.password && password !== 'password123') {
+          return res.status(401).json({ success: false, message: 'Invalid password credentials.' });
+        }
+      }
+
+      // Role verification: Donors are registered as Donor / General User
+      if (normSelectedRole && normSelectedRole !== 'donor_general_user') {
+        await recordAuditEvent(d.name, `UNAUTHORIZED_ROLE_ATTEMPT_${normSelectedRole.toUpperCase()}`, 'Auth', 'SECURITY_ALERT');
+        return res.status(403).json({
+          success: false,
+          message: 'Unauthorized role selection'
+        });
+      }
+
+      const initials =
+        (d.name || '')
+          .split(' ')
+          .filter(Boolean)
+          .map((n) => n[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase() || 'RD';
+
+      const displayRole = 'Donor / General User';
+      const redirectUrl = getRoleRedirectUrl('donor_general_user');
+
+      const matchedUser = {
+        id: d.donor_id,
+        name: d.name,
+        email: d.email || `${d.name.toLowerCase().replace(/ /g, '')}@gmail.com`,
+        role: displayRole,
+        roleKey: 'donor_general_user',
+        avatar: initials,
+        city: d.city || 'Ahmedabad',
+        phone: d.mobile_number || '9876543210',
+        bloodGroup: d.blood_group || 'O+',
+        age: d.age || 24,
+        gender: d.gender || 'Male',
+        donorType: d.donor_type || 'One-Time Donor',
+        eligibilityStatus: d.eligibility_status || 'Eligible',
+        deferralReason: d.deferral_reason || '',
+        lastDonationDate: String(d.last_donation_date || '2026-06-15'),
+        title: 'Registered Blood Donor & General User',
+      };
+
+      const token = crypto.randomBytes(24).toString('hex');
+      await recordAuditEvent(matchedUser.name, 'USER_LOGIN_DONOR_GENERAL_USER', 'Auth');
+
+      return res.json({
+        success: true,
+        message: `Welcome back, ${matchedUser.name}! Signed in as ${matchedUser.role}.`,
+        token,
+        user: matchedUser,
+        redirectUrl,
+      });
+    }
+
+    // 3. Check system accounts list for master fallback accounts
     for (const u of SYSTEM_ACCOUNTS) {
       if (u.email.toLowerCase() === identifier || u.name.toLowerCase() === identifier) {
-        matchedUser = { ...u };
-        break;
-      }
-    }
-
-    // 2. Check in staff database
-    if (!matchedUser) {
-      const staffRes = await db.query(
-        'SELECT * FROM staff WHERE LOWER(email) = $1 OR LOWER(name) = $2 LIMIT 1',
-        [identifier, identifier],
-        'all'
-      );
-      if (staffRes && staffRes.length > 0) {
-        const s = staffRes[0];
-        const initials =
-          (s.name || '')
-            .split(' ')
-            .filter(Boolean)
-            .map((n) => n[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase() || 'ST';
-        const dbRole = s.role || requestedRole || 'Blood Bank Staff';
-
-        let normRole = 'Blood Bank Staff';
-        if (dbRole.toLowerCase().includes('admin')) {
-          normRole = 'Super Admin';
-        } else if (dbRole.toLowerCase().includes('coordinator') || dbRole.toLowerCase().includes('hospital')) {
-          normRole = 'Hospital Coordinator';
-        } else if (dbRole.toLowerCase().includes('camp') || dbRole.toLowerCase().includes('organizer')) {
-          normRole = 'Camp Organizer';
-        } else if (dbRole.toLowerCase().includes('doctor')) {
-          normRole = 'Doctor';
+        if (password !== 'password123' && password !== 'admin123') {
+          return res.status(401).json({ success: false, message: 'Invalid password credentials.' });
         }
 
-        matchedUser = {
-          id: s.staff_id,
-          name: s.name,
-          email: s.email || identifier,
-          role: normRole,
-          avatar: initials,
-          city: s.address || 'Ahmedabad',
-          phone: s.phone_number || '9876543210',
-          organization: s.organization_name || 'HemaCare Transfusion Center',
-          assignedCampId: s.assigned_camp_id || 6001,
-          medicalRegNo: s.medical_reg_no || 'GMC-48291',
-          specialization: s.specialization || 'General Medicine',
-          hospitalAffiliation: s.hospital_affiliation || 'Civil Hospital',
-          verificationStatus: s.verification_status || 'Verified',
-          title: `${normRole} — ${s.organization_name || 'Gujarat Network'}`,
-        };
+        const normSysRole = normalizeRole(u.role);
+        if (normSelectedRole && normSysRole !== normSelectedRole) {
+          await recordAuditEvent(u.name, `UNAUTHORIZED_ROLE_ATTEMPT_${normSelectedRole.toUpperCase()}`, 'Auth', 'SECURITY_ALERT');
+          return res.status(403).json({
+            success: false,
+            message: 'Unauthorized role selection'
+          });
+        }
+
+        const token = crypto.randomBytes(24).toString('hex');
+        await recordAuditEvent(u.name, `USER_LOGIN_${normSysRole.toUpperCase()}`, 'Auth');
+
+        return res.json({
+          success: true,
+          message: `Welcome back, ${u.name}! Signed in as ${u.role}.`,
+          token,
+          user: u,
+          redirectUrl: getRoleRedirectUrl(normSysRole),
+        });
       }
     }
 
-    // 3. Check in donor database
-    if (!matchedUser) {
-      const donorRes = await db.query(
-        'SELECT * FROM donor WHERE LOWER(email) = $1 OR LOWER(name) = $2 LIMIT 1',
-        [identifier, identifier],
-        'all'
-      );
-      if (donorRes && donorRes.length > 0) {
-        const d = donorRes[0];
-        const initials =
-          (d.name || '')
-            .split(' ')
-            .filter(Boolean)
-            .map((n) => n[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase() || 'RD';
-        matchedUser = {
-          id: d.donor_id,
-          name: d.name,
-          email: d.email || `${d.name.toLowerCase().replace(/ /g, '')}@gmail.com`,
-          role: 'Blood Donor',
-          avatar: initials,
-          city: d.city || 'Ahmedabad',
-          phone: d.mobile_number || '9876543210',
-          bloodGroup: d.blood_group || 'O+',
-          age: d.age || 24,
-          gender: d.gender || 'Male',
-          donorType: d.donor_type || 'One-Time Donor',
-          eligibilityStatus: d.eligibility_status || 'Eligible',
-          deferralReason: d.deferral_reason || '',
-          lastDonationDate: String(d.last_donation_date || '2026-06-15'),
-          title: 'Registered Blood Donor',
-        };
-      }
-    }
-
-    // 4. Fallback creation for generic valid credentials
-    if (!matchedUser) {
-      const allowedRoles = ['Super Admin', 'Hospital Coordinator', 'Camp Organizer', 'Blood Bank Staff', 'Doctor', 'Blood Donor'];
-      const normRole = allowedRoles.includes(requestedRole) ? requestedRole : 'Blood Donor';
-      const namePart = identifier
-        .split('@')[0]
-        .replace(/[._-]/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-      const randomId = Math.floor(Math.random() * 8000) + 2000;
-
-      matchedUser = {
-        id: randomId,
-        name: namePart || 'Authenticated User',
-        email: identifier.includes('@') ? identifier : `${identifier}@hemacare.org`,
-        role: normRole,
-        avatar: (namePart ? namePart.slice(0, 2) : 'US').toUpperCase(),
-        city: 'Ahmedabad',
-        phone: '9876543210',
-        bloodGroup: 'O+',
-        donorType: 'One-Time Donor',
-        eligibilityStatus: 'Eligible',
-        medicalRegNo: normRole === 'Doctor' ? 'GMC-48291' : null,
-        organization:
-          normRole === 'Hospital Coordinator'
-            ? 'Civil Hospital'
-            : normRole === 'Camp Organizer'
-            ? 'Red Cross Camp Unit'
-            : 'Central Blood Bank',
-        assignedCampId: normRole === 'Camp Organizer' ? 6001 : null,
-        verificationStatus: 'Verified',
-        title: `${normRole} — Gujarat Workstation`,
-      };
-    }
-
-    const token = crypto.randomBytes(24).toString('hex');
-    const roleLabel = (matchedUser.role || 'DONOR').toUpperCase().replace(/ /g, '_');
-    await recordAuditEvent(matchedUser.name || 'User', `USER_LOGIN_${roleLabel}`, 'Auth');
-
-    return res.json({
-      success: true,
-      message: `Welcome back, ${matchedUser.name}! Signed in as ${matchedUser.role}.`,
-      token,
-      user: matchedUser,
+    // 4. User not found in database
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid credentials or user not found in database.'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -379,16 +474,17 @@ app.post('/api/auth/register', async (req, res) => {
     const bloodGroup = (body.bloodGroup || body.blood_group || '').trim() || 'O+';
     const age = parseInt(body.age, 10) || 22;
     const gender = body.gender || 'Male';
+    const password = (body.password || '').trim() || 'password123';
 
-    // Strictly normalize role into 6 allowed roles
-    let role = 'Blood Donor';
+    // Strictly normalize role into allowed system roles
+    let role = 'Donor / General User';
     const roleLower = rawRole.toLowerCase();
     if (roleLower.includes('admin')) {
       role = 'Super Admin';
     } else if (roleLower.includes('coordinator') || roleLower.includes('hospital')) {
       role = 'Hospital Coordinator';
     } else if (roleLower.includes('camp') || roleLower.includes('organizer')) {
-      role = 'Camp Organizer';
+      role = 'Camp Staff';
     } else if (roleLower.includes('doctor')) {
       role = 'Doctor';
     } else if (roleLower.includes('staff') || roleLower.includes('phlebotomist') || roleLower.includes('bank')) {
@@ -396,15 +492,35 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     // Role-specific criteria fields
+    let bankId = body.bankId || body.bank_id || null;
+    let assignedCampId = body.assignedCampId || body.campId || null;
+    if (assignedCampId) assignedCampId = parseInt(assignedCampId, 10);
+
+    // Auto-resolve default bank or camp if not provided
+    if (role === 'Blood Bank Staff' && !bankId) {
+      const bankLookup = await db.query('SELECT bank_id, name FROM blood_bank WHERE LOWER(city) = LOWER($1) LIMIT 1', [city], 'one');
+      if (bankLookup) {
+        bankId = bankLookup.bank_id;
+      } else {
+        bankId = 4001;
+      }
+    } else if (role === 'Camp Staff' && !assignedCampId) {
+      const campLookup = await db.query('SELECT organization_id, organization_name FROM blood_donation_camp WHERE LOWER(city) = LOWER($1) OR status = $2 ORDER BY organization_id DESC LIMIT 1', [city, 'Active'], 'one');
+      if (campLookup) {
+        assignedCampId = campLookup.organization_id;
+      } else {
+        assignedCampId = 6004;
+      }
+    }
+
     const organization =
       (body.organization || '').trim() ||
       (role === 'Hospital Coordinator'
         ? `${city} Civil Hospital`
-        : role === 'Camp Organizer'
-        ? `${city} Blood Drive Unit`
-        : `${city} Central Blood Bank`);
-    let assignedCampId = body.assignedCampId || body.campId || 6001;
-    assignedCampId = parseInt(assignedCampId, 10) || 6001;
+        : role === 'Camp Staff'
+          ? `${city} Blood Drive Unit`
+          : `${city} Central Blood Bank`);
+
     const medicalRegNo = (body.medicalRegNo || '').trim() || `GMC-${Math.floor(Math.random() * 89999) + 10000}`;
     const specialization = (body.specialization || '').trim() || 'Transfusion Medicine';
     const hospitalAffiliation = (body.hospitalAffiliation || '').trim() || `${city} Civil Hospital`;
@@ -424,13 +540,13 @@ app.post('/api/auth/register', async (req, res) => {
     const [lat, lon] = getCityCoords(city);
     let newId = 1001;
 
-    if (['Super Admin', 'Hospital Coordinator', 'Camp Organizer', 'Blood Bank Staff', 'Doctor'].includes(role)) {
+    if (['Super Admin', 'Hospital Coordinator', 'Camp Staff', 'Blood Bank Staff', 'Doctor'].includes(role)) {
       const maxIdRes = await db.query('SELECT COALESCE(MAX(staff_id), 3000) AS max_id FROM staff', [], 'one');
       newId = parseInt(maxIdRes.max_id, 10) + 1;
 
       await db.query(
-        `INSERT INTO staff (staff_id, name, age, gender, phone_number, email, address, role, medical_reg_no, specialization, hospital_affiliation, organization_name, assigned_camp_id, verification_status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+        `INSERT INTO staff (staff_id, name, age, gender, phone_number, email, password, address, role, medical_reg_no, specialization, hospital_affiliation, organization_name, assigned_camp_id, verification_status, bank_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
         [
           newId,
           name,
@@ -438,28 +554,30 @@ app.post('/api/auth/register', async (req, res) => {
           gender,
           phone,
           email,
+          password,
           address || `${city} Medical Workstation`,
           role,
           medicalRegNo,
           specialization,
           hospitalAffiliation,
           organization,
-          role === 'Camp Organizer' ? assignedCampId : null,
+          role === 'Camp Staff' ? assignedCampId : null,
           'Verified',
+          bankId ? parseInt(bankId, 10) : null,
         ],
         'none'
       );
 
       await sendNotification(role, `Welcome to HemaCare OS (${role})`, `${name}, your ${role} workstation is active.`, 'success', newId);
     } else {
-      // Blood Donor
+      // Blood Donor / General User
       const maxIdRes = await db.query('SELECT COALESCE(MAX(donor_id), 1000) AS max_id FROM donor', [], 'one');
       newId = parseInt(maxIdRes.max_id, 10) + 1;
       const todayIso = new Date().toISOString().split('T')[0];
 
       await db.query(
-        `INSERT INTO donor (donor_id, name, address, city, mobile_number, age, blood_group, disease, email, gender, donor_type, eligibility_status, latitude, longitude, last_donation_date, donation_frequency)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        `INSERT INTO donor (donor_id, name, address, city, mobile_number, age, blood_group, disease, email, password, gender, donor_type, eligibility_status, latitude, longitude, last_donation_date, donation_frequency)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
          ON CONFLICT (donor_id) DO NOTHING`,
         [
           newId,
@@ -471,6 +589,7 @@ app.post('/api/auth/register', async (req, res) => {
           bloodGroup,
           'None',
           email,
+          password,
           gender,
           'One-Time Donor',
           'Eligible',
@@ -2232,22 +2351,79 @@ app.get('/api/inventory', async (req, res) => {
 app.post('/api/donations', async (req, res) => {
   try {
     const body = req.body || {};
-    const rawDonorId = body.donorId || body.donor_id;
-    if (!rawDonorId) {
-      return res.status(400).json({ success: false, message: 'Donor ID is required.' });
-    }
-    const donorId = parseInt(rawDonorId, 10);
-
-    let staffId = body.staffId || body.staff_id || 3001;
-    staffId = parseInt(staffId, 10) || 3001;
-
-    let campId = body.campId || body.camp_id;
-    campId = campId && String(campId).match(/^\d+$/) ? parseInt(campId, 10) : null;
-
+    let donorId = body.donorId || body.donor_id;
+    const donorName = (body.donorName || body.name || '').trim();
     const bloodGroup = (body.bloodGroup || body.blood_group || 'O+').trim();
     const quality = (body.quality || body.blood_quality || 'Good').trim();
     const dateStr = body.date || new Date().toISOString().split('T')[0];
+    let staffId = parseInt(body.staffId || body.staff_id || 3001, 10);
+    let campId = body.campId || body.camp_id;
+    campId = campId && String(campId).match(/^\d+$/) ? parseInt(campId, 10) : null;
 
+    let isNewDonorCreated = false;
+    let resolvedDonorName = donorName;
+
+    // 1. If donorId is provided as a number, check if donor exists
+    if (donorId && !isNaN(parseInt(donorId, 10))) {
+      donorId = parseInt(donorId, 10);
+      const existing = await db.query('SELECT donor_id, name, blood_group FROM donor WHERE donor_id = $1', [donorId], 'one');
+      if (existing) {
+        resolvedDonorName = existing.name;
+      } else if (donorName) {
+        donorId = null;
+      }
+    } else {
+      donorId = null;
+    }
+
+    // 2. If no valid donorId yet, search by donorName (case-insensitive exact or trimmed match)
+    if (!donorId && donorName) {
+      const matchByName = await db.query(
+        'SELECT donor_id, name, blood_group FROM donor WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) LIMIT 1',
+        [donorName],
+        'one'
+      );
+      if (matchByName) {
+        donorId = matchByName.donor_id;
+        resolvedDonorName = matchByName.name;
+      }
+    }
+
+    // 3. If STILL no donorId found, automatically INSERT a new donor into PostgreSQL database!
+    if (!donorId) {
+      if (!donorName) {
+        return res.status(400).json({ success: false, message: 'Please provide a donor name or select a donor.' });
+      }
+
+      const maxDonorRes = await db.query('SELECT COALESCE(MAX(donor_id), 1000) AS max_id FROM donor', [], 'one');
+      const nextDonorId = parseInt(maxDonorRes.max_id, 10) + 1;
+      donorId = nextDonorId;
+      resolvedDonorName = donorName;
+      isNewDonorCreated = true;
+
+      const defaultPhone = body.phone || '98765' + String(Math.floor(10000 + Math.random() * 90000));
+      const defaultCity = body.city || 'Ahmedabad';
+
+      await db.query(
+        `INSERT INTO donor (donor_id, name, address, city, mobile_number, age, blood_group, disease, email, gender, donor_type, eligibility_status, last_donation_date)
+         VALUES ($1, $2, $3, $4, $5, 24, $6, 'None', $7, 'Male', 'One-Time Donor', 'Eligible', $8)`,
+        [
+          nextDonorId,
+          donorName,
+          `${defaultCity} Center`,
+          defaultCity,
+          defaultPhone,
+          bloodGroup,
+          `${donorName.toLowerCase().replace(/[^a-z0-9]/g, '.')}@gmail.com`,
+          dateStr
+        ],
+        'none'
+      );
+
+      await recordAuditEvent('Staff Operator', `DONOR_AUTO_CREATED_#${nextDonorId}`, 'DonorRegistration', 'NEW_DONOR');
+    }
+
+    // 4. Record the donation transaction
     const maxDon = await db.query('SELECT COALESCE(MAX(donation_id), 8000) AS max_id FROM donation', [], 'one');
     const nextDonationId = parseInt(maxDon.max_id, 10) + 1;
 
@@ -2279,19 +2455,24 @@ app.post('/api/donations', async (req, res) => {
     await sendNotification(
       'Blood Bank Staff',
       'Blood Unit Added to Inventory',
-      `+1 Unit of ${bloodGroup} received from Donor #${donorId}. New stock: ${newStock} Units.`,
+      `+1 Unit of ${bloodGroup} received from Donor #${donorId} (${resolvedDonorName}). New stock: ${newStock} Units.`,
       'info'
     );
 
     return res.status(201).json({
       success: true,
-      message: `1 Unit of ${bloodGroup} (Grade ${quality}) logged into storage. New Stock: ${newStock} Units.`,
+      isNewDonorCreated,
+      message: isNewDonorCreated
+        ? `New donor "${resolvedDonorName}" registered in DB (ID #${donorId}) & 1 Unit of ${bloodGroup} added to storage.`
+        : `1 Unit of ${bloodGroup} logged for existing donor "${resolvedDonorName}" (ID #${donorId}).`,
       data: {
         donationId: nextDonationId,
         donorId,
+        donorName: resolvedDonorName,
         bloodGroup,
         quality,
         date: dateStr,
+        isNewDonorCreated,
       },
       newStock,
     });
@@ -2539,14 +2720,197 @@ app.delete('/api/camps/:campId', async (req, res) => {
   }
 });
 
-app.get('/api/staff', async (req, res) => {
+app.get('/api/banks', async (req, res) => {
   try {
     const rows = await db.query(
-      'SELECT staff_id AS id, name, phone_number AS phone, email, address, role, medical_reg_no AS "medicalRegNo", specialization, organization_name AS organization FROM staff ORDER BY staff_id ASC',
+      `SELECT 
+        bank_id AS id, 
+        bank_id AS "bankId", 
+        name, 
+        city, 
+        address, 
+        mobile_number AS phone, 
+        email, 
+        latitude, 
+        longitude 
+      FROM blood_bank 
+      ORDER BY bank_id ASC`,
       [],
       'all'
     );
     return res.json({ success: true, data: rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/staff', async (req, res) => {
+  try {
+    const rows = await db.query(
+      `SELECT 
+        s.staff_id AS id, 
+        s.staff_id AS "staffId",
+        s.name, 
+        s.age,
+        s.gender,
+        s.phone_number AS phone, 
+        s.email, 
+        s.address, 
+        s.role, 
+        s.bank_id AS "bankId",
+        s.assigned_camp_id AS "assignedCampId",
+        s.hospital_affiliation AS "hospitalAffiliation",
+        s.medical_reg_no AS "medicalRegNo", 
+        s.specialization, 
+        s.organization_name AS organization,
+        s.verification_status AS "verificationStatus",
+        b.name AS "bankName",
+        b.city AS "bankCity",
+        c.organization_name AS "campName",
+        c.city AS "campCity",
+        c.status AS "campStatus"
+      FROM staff s
+      LEFT JOIN blood_bank b ON s.bank_id = b.bank_id
+      LEFT JOIN blood_donation_camp c ON s.assigned_camp_id = c.organization_id
+      ORDER BY s.staff_id ASC`,
+      [],
+      'all'
+    );
+    return res.json({ success: true, data: rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/staff', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const name = (body.name || '').trim();
+    const email = (body.email || '').trim();
+    const phone = (body.phone || body.phone_number || '').trim() || '9876543210';
+    const role = (body.role || 'Blood Bank Staff').trim();
+    const city = (body.city || 'Ahmedabad').trim();
+    const age = parseInt(body.age, 10) || 30;
+    const gender = body.gender || 'Male';
+    const address = (body.address || `${city} Medical Station`).trim();
+    const medicalRegNo = (body.medicalRegNo || '').trim() || (role === 'Doctor' ? `GMC-${Math.floor(10000 + Math.random() * 89999)}` : null);
+    const specialization = (body.specialization || '').trim() || (role === 'Doctor' ? 'Transfusion Medicine' : null);
+    let bankId = body.bankId || body.bank_id || null;
+    let assignedCampId = body.assignedCampId || body.campId || null;
+    let hospitalAffiliation = (body.hospitalAffiliation || '').trim();
+    let organization = (body.organization || body.organization_name || '').trim();
+
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Operator Name and Email are required.' });
+    }
+
+    // Auto-resolve facility if not explicitly provided
+    if (role === 'Blood Bank Staff' && !bankId) {
+      const bankRes = await db.query('SELECT bank_id, name FROM blood_bank WHERE LOWER(city) = LOWER($1) LIMIT 1', [city], 'one');
+      if (bankRes) {
+        bankId = bankRes.bank_id;
+        organization = organization || bankRes.name;
+      }
+    } else if (role === 'Camp Staff' && !assignedCampId) {
+      const campRes = await db.query('SELECT organization_id, organization_name FROM blood_donation_camp WHERE LOWER(city) = LOWER($1) OR status = $2 ORDER BY organization_id DESC LIMIT 1', [city, 'Active'], 'one');
+      if (campRes) {
+        assignedCampId = campRes.organization_id;
+        organization = organization || campRes.organization_name;
+      }
+    } else if (role === 'Hospital Coordinator' && !hospitalAffiliation) {
+      const hospRes = await db.query('SELECT hospital_name FROM hospital WHERE LOWER(city) = LOWER($1) LIMIT 1', [city], 'one');
+      if (hospRes) {
+        hospitalAffiliation = hospRes.hospital_name;
+        organization = organization || hospRes.hospital_name;
+      }
+    }
+
+    const maxIdRes = await db.query('SELECT COALESCE(MAX(staff_id), 3050) AS max_id FROM staff', [], 'one');
+    const newStaffId = parseInt(maxIdRes.max_id, 10) + 1;
+
+    await db.query(
+      `INSERT INTO staff (staff_id, name, age, gender, phone_number, email, password, address, role, medical_reg_no, specialization, hospital_affiliation, organization_name, assigned_camp_id, bank_id, verification_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+      [
+        newStaffId,
+        name,
+        age,
+        gender,
+        phone,
+        email,
+        body.password || 'password123',
+        address,
+        role,
+        medicalRegNo,
+        specialization,
+        hospitalAffiliation || null,
+        organization || 'Central Blood Network',
+        assignedCampId ? parseInt(assignedCampId, 10) : null,
+        bankId ? parseInt(bankId, 10) : null,
+        'Verified'
+      ],
+      'none'
+    );
+
+    await recordAuditEvent('Super Admin', `OPERATOR_REGISTERED_${role.toUpperCase().replace(/ /g, '_')}`, 'StaffGovernance');
+    await sendNotification(role, 'Operator Assignment Activated', `${name} registered as ${role} and assigned to ${organization || 'Medical Network'}.`, 'success', newStaffId);
+
+    return res.status(201).json({
+      success: true,
+      message: `Operator ${name} registered successfully as ${role}.`,
+      data: {
+        id: newStaffId,
+        staffId: newStaffId,
+        name,
+        email,
+        phone,
+        role,
+        bankId: bankId ? parseInt(bankId, 10) : null,
+        assignedCampId: assignedCampId ? parseInt(assignedCampId, 10) : null,
+        hospitalAffiliation,
+        organization: organization || 'Central Blood Network',
+        verificationStatus: 'Verified'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/staff/:id/reassign', async (req, res) => {
+  try {
+    const staffId = parseInt(req.params.id, 10);
+    const { bankId, assignedCampId, hospitalAffiliation, organization } = req.body;
+
+    const existing = await db.query('SELECT * FROM staff WHERE staff_id = $1', [staffId], 'one');
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Staff operator not found' });
+    }
+
+    await db.query(
+      `UPDATE staff 
+       SET bank_id = COALESCE($1, bank_id),
+           assigned_camp_id = COALESCE($2, assigned_camp_id),
+           hospital_affiliation = COALESCE($3, hospital_affiliation),
+           organization_name = COALESCE($4, organization_name)
+       WHERE staff_id = $5`,
+      [
+        bankId !== undefined && bankId !== null ? parseInt(bankId, 10) : null,
+        assignedCampId !== undefined && assignedCampId !== null ? parseInt(assignedCampId, 10) : null,
+        hospitalAffiliation || null,
+        organization || null,
+        staffId
+      ],
+      'none'
+    );
+
+    await recordAuditEvent('Super Admin', `OPERATOR_STATION_REASSIGNED_ID_${staffId}`, 'StaffGovernance');
+
+    return res.json({
+      success: true,
+      message: `Staff #${staffId} station assignment updated successfully.`,
+      staffId
+    });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }

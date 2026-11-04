@@ -22,13 +22,19 @@ const DB_PASSWORD = process.env.DB_PASSWORD || 'postgres';
 const DATABASE_URL = process.env.DATABASE_URL;
 const DB_DEBUG = (process.env.DB_DEBUG || 'false').toLowerCase() === 'true';
 
+// Determine SSL settings for cloud hosting (Render, Supabase, Neon, Railway, AWS RDS)
+const useSsl =
+  process.env.DB_SSL === 'true' ||
+  (Boolean(DATABASE_URL) && process.env.DB_SSL !== 'false');
+
 // PostgreSQL Connection Pool configuration
 const poolConfig = DATABASE_URL
   ? {
       connectionString: DATABASE_URL,
+      ssl: useSsl ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
     }
   : {
       host: DB_HOST,
@@ -36,9 +42,10 @@ const poolConfig = DATABASE_URL
       database: DB_NAME,
       user: DB_USER,
       password: DB_PASSWORD,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
     };
 
 let pool = null;
@@ -181,6 +188,8 @@ async function initializeSchemaIfNeeded() {
 
     // Ensure all operational RBAC tables and columns exist
     const schemaMigrations = [
+      "ALTER TABLE donor ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT 'password123';",
+      "ALTER TABLE staff ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT 'password123';",
       "ALTER TABLE donor ADD COLUMN IF NOT EXISTS donor_type VARCHAR(30) DEFAULT 'One-Time Donor';",
       "ALTER TABLE donor ADD COLUMN IF NOT EXISTS eligibility_status VARCHAR(30) DEFAULT 'Eligible';",
       "ALTER TABLE donor ADD COLUMN IF NOT EXISTS deferral_reason TEXT DEFAULT '';",

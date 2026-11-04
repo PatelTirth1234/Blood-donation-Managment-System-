@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS donor (
     blood_group VARCHAR(5) NOT NULL,
     disease VARCHAR(100) DEFAULT 'None',
     email VARCHAR(100),
+    password VARCHAR(255) DEFAULT 'password123',
     gender VARCHAR(10),
     donor_type VARCHAR(30) DEFAULT 'One-Time Donor',
     eligibility_status VARCHAR(30) DEFAULT 'Eligible',
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS donor (
     donation_frequency VARCHAR(50) DEFAULT 'Occasional',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE donor ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT 'password123';
 ALTER TABLE donor ADD COLUMN IF NOT EXISTS donor_type VARCHAR(30) DEFAULT 'One-Time Donor';
 ALTER TABLE donor ADD COLUMN IF NOT EXISTS eligibility_status VARCHAR(30) DEFAULT 'Eligible';
 ALTER TABLE donor ADD COLUMN IF NOT EXISTS deferral_reason TEXT DEFAULT '';
@@ -72,6 +74,7 @@ CREATE TABLE IF NOT EXISTS staff (
     gender VARCHAR(10),
     phone_number VARCHAR(15),
     email VARCHAR(100),
+    password VARCHAR(255) DEFAULT 'password123',
     address VARCHAR(200),
     bank_id INT,
     role VARCHAR(50) DEFAULT 'Clinical Staff',
@@ -83,6 +86,7 @@ CREATE TABLE IF NOT EXISTS staff (
     verification_status VARCHAR(30) DEFAULT 'Verified',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT 'password123';
 ALTER TABLE staff ADD COLUMN IF NOT EXISTS bank_id INT;
 ALTER TABLE staff ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'Clinical Staff';
 ALTER TABLE staff ADD COLUMN IF NOT EXISTS medical_reg_no VARCHAR(50);

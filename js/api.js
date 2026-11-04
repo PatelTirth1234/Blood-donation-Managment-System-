@@ -54,7 +54,14 @@
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+          const errData = await response.json().catch(() => null);
+          const errMsg = (errData && (errData.message || errData.error)) || `HTTP Error ${response.status}: ${response.statusText}`;
+          const err = new Error(errMsg);
+          err.status = response.status;
+          err.data = errData;
+          this.isOnline = true;
+          this.updateSyncBadge(true);
+          throw err;
         }
 
         const data = await response.json();
@@ -65,7 +72,12 @@
       } catch (err) {
         clearTimeout(timeoutId);
 
-        if (retries > 1 && err.name !== 'AbortError') {
+        // If client error (4xx like 400, 401, 403), rethrow immediately
+        if (err.status && err.status >= 400 && err.status < 500) {
+          throw err;
+        }
+
+        if (retries > 1 && err.name !== 'AbortError' && (!err.status || err.status >= 500)) {
           const delay = 400 * (API_CONFIG.MAX_RETRIES - retries + 1);
           await new Promise(r => setTimeout(r, delay));
           return this.request(endpoint, options, retries - 1);
@@ -73,8 +85,8 @@
 
         this.isOnline = false;
         this.updateSyncBadge(false);
-        console.warn(`[HemaCare OS API] Endpoint '${endpoint}' unreachable, switching to local state cache.`);
-        return null;
+        console.warn(`[HemaCare OS API] Endpoint '${endpoint}' unreachable:`, err.message);
+        throw err;
       }
     }
 
@@ -319,6 +331,34 @@
     }
 
     async getAuditLogs() { return this.request('/audit'); }
+
+    // Blood Banks & Facilities
+    async getBanks() {
+      return this.request('/banks');
+    }
+
+    async getHospitals() {
+      return this.request('/hospitals');
+    }
+
+    // Staff & Operator Governance
+    async getStaff() {
+      return this.request('/staff');
+    }
+
+    async addStaff(payload) {
+      return this.request('/staff', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async reassignStaff(staffId, payload) {
+      return this.request(`/staff/${staffId}/reassign`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+    }
   }
 
   // Export to global window

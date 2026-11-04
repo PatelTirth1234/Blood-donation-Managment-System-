@@ -3,14 +3,14 @@
 -- ============================================================================
 
 -- 1. Seed Donors
-INSERT INTO donor (donor_id, name, address, city, mobile_number, age, blood_group, disease, email, gender)
+INSERT INTO donor (donor_id, name, address, city, mobile_number, age, blood_group, disease, email, gender, password)
 VALUES
-(1001, 'Tirth Patel', 'A-101 Green Residency', 'Ahmedabad', '9876543210', 21, 'B+', 'None', 'tirth@gmail.com', 'Male'),
-(1002, 'Rahul Shah', 'B-202 Shyam Society', 'Surat', '9876543211', 24, 'A+', 'None', 'rahul@gmail.com', 'Male'),
-(1003, 'Priya Desai', 'C-303 Park Avenue', 'Vadodara', '9876543212', 22, 'O+', 'None', 'priya@gmail.com', 'Female'),
-(1004, 'Neha Patel', 'D-404 Sunrise Society', 'Rajkot', '9876543213', 20, 'AB+', 'None', 'neha@gmail.com', 'Female'),
-(1005, 'Amit Joshi', 'E-505 Lake View', 'Mehsana', '9876543214', 26, 'B-', 'None', 'amit@gmail.com', 'Male')
-ON CONFLICT (donor_id) DO NOTHING;
+(1001, 'Tirth Patel', 'A-101 Green Residency', 'Ahmedabad', '9876543210', 21, 'B+', 'None', 'tirth@gmail.com', 'Male', 'password123'),
+(1002, 'Rahul Sharma', 'B-202 Shyam Society', 'Surat', '9876543211', 24, 'A+', 'None', 'rahul.sharma@donor.org', 'Male', 'password123'),
+(1003, 'Priya Desai', 'C-303 Park Avenue', 'Vadodara', '9876543212', 22, 'O+', 'None', 'priya@gmail.com', 'Female', 'password123'),
+(1004, 'Neha Patel', 'D-404 Sunrise Society', 'Rajkot', '9876543213', 20, 'AB+', 'None', 'neha@gmail.com', 'Female', 'password123'),
+(1005, 'Amit Joshi', 'E-505 Lake View', 'Mehsana', '9876543214', 26, 'B-', 'None', 'amit@gmail.com', 'Male', 'password123')
+ON CONFLICT (donor_id) DO UPDATE SET password = EXCLUDED.password, email = EXCLUDED.email, name = EXCLUDED.name;
 
 -- 2. Seed Recipients
 INSERT INTO recipients (recipient_id, name, address, email, age, blood_group, disease)
@@ -33,14 +33,22 @@ VALUES
 ON CONFLICT (bank_id) DO NOTHING;
 
 -- 4. Seed Staff Members
-INSERT INTO staff (staff_id, name, age, gender, phone_number, email, address, bank_id)
+INSERT INTO staff (staff_id, name, age, gender, phone_number, email, address, bank_id, role, organization_name, password)
 VALUES
-(3001, 'Dr. Rakesh Patel', 35, 'Male', '9876500001', 'rakesh@gmail.com', 'Ahmedabad', 4001),
-(3002, 'Pooja Shah', 29, 'Female', '9876500002', 'pooja@gmail.com', 'Surat', 4002),
-(3003, 'Jay Mehta', 31, 'Male', '9876500003', 'jay@gmail.com', 'Vadodara', 4003),
-(3004, 'Nisha Desai', 27, 'Female', '9876500004', 'nisha@gmail.com', 'Rajkot', 4004),
-(3005, 'Kunal Joshi', 33, 'Male', '9876500005', 'kunal@gmail.com', 'Mehsana', 4005)
-ON CONFLICT (staff_id) DO NOTHING;
+(3000, 'Tirth Patel', 24, 'Male', '9876543210', 'admin@hemacare.org', 'Ahmedabad', 4001, 'Super Admin', 'HemaCare OS Master HQ', 'password123'),
+(3001, 'Dr. Rakesh Patel', 35, 'Male', '9876500001', 'rakesh@gmail.com', 'Ahmedabad', 4001, 'Doctor', 'Civil Hospital Ahmedabad', 'password123'),
+(3002, 'Pooja Shah', 29, 'Female', '9876500002', 'pooja@gmail.com', 'Surat', 4002, 'Camp Staff', 'Surat Red Cross Blood Center', 'password123'),
+(3003, 'Jay Mehta', 31, 'Male', '9876500003', 'jay@gmail.com', 'Vadodara', 4003, 'Blood Bank Staff', 'Central Blood Bank Vadodara', 'password123'),
+(3004, 'Nisha Desai', 27, 'Female', '9876500004', 'nisha@gmail.com', 'Rajkot', 4004, 'Blood Bank Staff', 'Rajkot Regional Blood Center', 'password123'),
+(3005, 'Kunal Joshi', 33, 'Male', '9876500005', 'kunal@gmail.com', 'Mehsana', 4005, 'Camp Staff', 'Mehsana Mobile Blood Drive', 'password123'),
+(3020, 'Kavita Patel', 29, 'Female', '9876543210', 'kavita.staff@raktsetu.org', 'Ahmedabad', 4001, 'Blood Bank Staff', 'Apex Central Blood Bank', 'password123'),
+(3021, 'Anil Shah', 38, 'Male', '9876543202', 'coordinator.hospital@civil.org', 'Ahmedabad', 4001, 'Hospital Coordinator', 'Civil Hospital Ahmedabad', 'password123'),
+(3022, 'Meera Joshi', 31, 'Female', '9876543203', 'organizer.meera@redcross.org', 'Ahmedabad', 4001, 'Camp Staff', 'Red Cross Mobile Blood Drive Unit', 'password123')
+ON CONFLICT (staff_id) DO UPDATE SET 
+  role = EXCLUDED.role, 
+  organization_name = EXCLUDED.organization_name, 
+  password = EXCLUDED.password, 
+  email = EXCLUDED.email;
 
 -- 5. Seed Hospitals
 INSERT INTO hospital (hospital_id, hospital_name, city, address)

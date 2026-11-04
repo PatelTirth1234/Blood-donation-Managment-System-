@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: hemacare-os
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_SSL
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hemacare-postgres
+          property: connectionString
+
+databases:
+  - name: hemacare-postgres
+    databaseName: hemacare
+    user: hemacare_admin
+    plan: free

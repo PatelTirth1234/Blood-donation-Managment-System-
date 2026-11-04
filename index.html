@@ -23,10 +23,59 @@
     rel="stylesheet" />
 
   <!-- Modular Design System Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=3.0.0" />
 </head>
 
-<body class="bg-[#fcf9f3] text-[#1c1c18] antialiased selection:bg-[#ffdada] selection:text-[#40000c]">
+<body class="spatial-body antialiased">
+
+  <!-- ==========================================================================
+       SPATIAL 3D AURORA CANVAS & DIMENSIONAL ATMOSPHERIC BACKDROP
+       ========================================================================== -->
+  <div class="spatial-aurora-bg" aria-hidden="true">
+    <div class="spatial-orb spatial-orb-1"></div>
+    <div class="spatial-orb spatial-orb-2"></div>
+    <div class="spatial-orb spatial-orb-3"></div>
+    <div class="spatial-grid-overlay"></div>
+  </div>
+
+  <!-- ==========================================================================
+       GLOBAL DATA LISTS (City, Blood Banks, Hospitals, Camps)
+       ========================================================================== -->
+  <datalist id="cityDataList">
+    <option value="Ahmedabad"></option>
+    <option value="Surat"></option>
+    <option value="Vadodara"></option>
+    <option value="Rajkot"></option>
+    <option value="Mehsana"></option>
+    <option value="Gandhinagar"></option>
+    <option value="Bhavnagar"></option>
+    <option value="Jamnagar"></option>
+    <option value="Anand"></option>
+  </datalist>
+
+  <datalist id="bloodBankDataList">
+    <option value="Red Cross Blood Bank (Ahmedabad - Navrangpura)">
+    <option value="Life Care Blood Bank (Surat - Ring Road)">
+    <option value="City Blood Bank (Vadodara - Alkapuri)">
+    <option value="Hope Blood Bank (Rajkot - Kalawad Road)">
+    <option value="Health Blood Bank (Mehsana - Highway Road)">
+  </datalist>
+
+  <datalist id="hospitalDataList">
+    <option value="Civil Hospital Ahmedabad">
+    <option value="Apollo Hospital Surat">
+    <option value="Sterling Hospital Vadodara">
+    <option value="Wockhardt Hospital Rajkot">
+    <option value="Zydus Hospital Mehsana">
+  </datalist>
+
+  <datalist id="campDataList">
+    <option value="Red Cross Mega Blood Drive (Ahmedabad #6001)">
+    <option value="Life Care Community Camp (Surat #6002)">
+    <option value="MS University Health Drive (Vadodara #6003)">
+    <option value="Youth Rotary Blood Drive (Rajkot #6004 - Active Live)">
+    <option value="Save Life Civic Drive (Mehsana #6005)">
+  </datalist>
 
   <!-- ==========================================================================
        DEDICATED FULL-SCREEN SIGN IN & REGISTRATION LANDING PORTAL
@@ -154,9 +203,9 @@
         <div class="landing-tab-pane active" id="landingPaneSignIn">
           <form id="formLandingSignIn" novalidate>
             <div class="form-group">
-              <label class="form-label" for="landingLoginEmail">Email Address <span class="req">*</span></label>
-              <input type="email" id="landingLoginEmail" class="input-control" required
-                placeholder="e.g. rahul.sharma@gmail.com" autocomplete="username">
+              <label class="form-label" for="landingLoginEmail">Email Address or Username <span class="req">*</span></label>
+              <input type="text" id="landingLoginEmail" class="input-control" required
+                placeholder="e.g. kavita.staff@raktsetu.org or username" autocomplete="username">
             </div>
 
             <div class="form-group">
@@ -170,12 +219,12 @@
               </div>
               <div class="password-input-wrap">
                 <input type="password" id="landingLoginPassword" class="input-control" required
-                  placeholder="Enter your password" autocomplete="current-password">
+                  placeholder="Enter your password" autocomplete="current-password" value="password123">
                 <button type="button" class="password-toggle-btn" id="toggleLandingPassword"
                   aria-label="Toggle password visibility">
                   <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                   <svg class="eye-closed" style="display:none;" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -189,16 +238,57 @@
               </div>
             </div>
 
+            <!-- Role Selector: Dropdown & Interactive Radio Toggle Cards -->
             <div class="form-group">
-              <label class="form-label" for="landingLoginRole">Assigned Clinical / User Role <span
-                  class="req">*</span></label>
-              <select id="landingLoginRole" class="select-control">
-                <option value="Super Admin">👑 Super Admin (Master HQ)</option>
-                <option value="Blood Bank Staff">🏥 Blood Bank Staff</option>
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Select Workstation Role <span class="req">*</span></span>
+                <span style="font-size:11px; color:var(--text-muted);">Verified against STAFF registry</span>
+              </label>
+
+              <div class="role-selector-toggle-grid" id="landingRoleToggleGrid" role="radiogroup" aria-label="Select Workstation Role">
+                <label class="role-toggle-card" data-role="Hospital Coordinator" id="cardRoleHospital">
+                  <input type="radio" name="landingRoleRadio" value="Hospital Coordinator">
+                  <div class="role-toggle-icon">🏨</div>
+                  <div class="role-toggle-body">
+                    <div class="role-toggle-title">Hospital Coordinator</div>
+                    <div class="role-toggle-desc">Emergency Requisitions &amp; Dispatch</div>
+                  </div>
+                </label>
+
+                <label class="role-toggle-card active" data-role="Blood Bank Staff" id="cardRoleStaff">
+                  <input type="radio" name="landingRoleRadio" value="Blood Bank Staff" checked>
+                  <div class="role-toggle-icon">🏥</div>
+                  <div class="role-toggle-body">
+                    <div class="role-toggle-title">Blood Bank Staff</div>
+                    <div class="role-toggle-desc">Cold-Storage Matrix &amp; Requests</div>
+                  </div>
+                </label>
+
+                <label class="role-toggle-card" data-role="Camp Staff" id="cardRoleCamp">
+                  <input type="radio" name="landingRoleRadio" value="Camp Staff">
+                  <div class="role-toggle-icon">🎪</div>
+                  <div class="role-toggle-body">
+                    <div class="role-toggle-title">Camp Staff</div>
+                    <div class="role-toggle-desc">Camp Operations &amp; Intakes</div>
+                  </div>
+                </label>
+
+                <label class="role-toggle-card" data-role="Donor / General User" id="cardRoleDonor">
+                  <input type="radio" name="landingRoleRadio" value="Donor / General User">
+                  <div class="role-toggle-icon">🩸</div>
+                  <div class="role-toggle-body">
+                    <div class="role-toggle-title">Donor / General User</div>
+                    <div class="role-toggle-desc">Voluntary Donors &amp; History</div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Synced Select Dropdown -->
+              <select id="landingLoginRole" class="select-control" style="margin-top:6px;">
                 <option value="Hospital Coordinator">🏨 Hospital Coordinator</option>
-                <option value="Camp Organizer">🎪 Camp Organizer</option>
-                <option value="Doctor">🩺 Doctor (Medical Officer)</option>
-                <option value="Blood Donor" selected>🩸 Blood Donor</option>
+                <option value="Blood Bank Staff" selected>🏥 Blood Bank Staff</option>
+                <option value="Camp Staff">🎪 Camp Staff</option>
+                <option value="Donor / General User">🩸 Donor / General User</option>
               </select>
             </div>
 
@@ -208,7 +298,7 @@
                 <input type="checkbox" id="landingRememberMe" checked>
                 <span>Remember me on this workstation</span>
               </label>
-              <span style="font-size:11.5px; color:var(--text-muted);">Audit log active</span>
+              <span style="font-size:11.5px; color:var(--text-muted);">Database verified</span>
             </div>
 
             <button type="submit" class="btn btn-primary btn-landing-auth" id="btnLandingSignIn">
@@ -217,8 +307,31 @@
                 <polyline points="10 17 15 12 10 7"></polyline>
                 <line x1="15" y1="12" x2="3" y2="12"></line>
               </svg>
-              <span>🚀 Sign In to HemaCare OS</span>
+              <span>🚀 Sign In with Role Authorization</span>
             </button>
+
+            <!-- Quick Credential Helper Profiles -->
+            <div class="auth-quick-profiles">
+              <div class="quick-profiles-label">⚡ 1-Click Role Fill (Demo / Testing):</div>
+              <div class="quick-profiles-grid">
+                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('hospital_coordinator')">
+                  <span>🏨 Hospital Coord</span>
+                  <small>coordinator.hospital@civil.org</small>
+                </button>
+                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('blood_bank_staff')">
+                  <span>🏥 Blood Bank Staff</span>
+                  <small>kavita.staff@raktsetu.org</small>
+                </button>
+                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('camp_staff')">
+                  <span>🎪 Camp Staff</span>
+                  <small>organizer.meera@redcross.org</small>
+                </button>
+                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('donor_general_user')">
+                  <span>🩸 Donor / General</span>
+                  <small>rahul.sharma@donor.org</small>
+                </button>
+              </div>
+            </div>
           </form>
         </div>
 
@@ -306,6 +419,23 @@
               <div style="font-size:12px; font-weight:700; color:var(--color-success); margin-bottom:8px;">
                 🩺 Doctor Registration Criteria (MCI / State Medical Council)
               </div>
+
+              <!-- Smart Suggestion for Doctor -->
+              <div class="smart-suggestion-box doctor-suggestion" id="landingDoctorSuggestionBox">
+                <div class="suggestion-header">
+                  <span class="suggestion-icon">💡</span>
+                  <span class="suggestion-label">Intelligent Station Recommendation for Doctor:</span>
+                </div>
+                <div class="suggestion-pills-row">
+                  <button type="button" class="suggestion-pill-btn" id="btnLandingDocHospPill" onclick="window.HemaCareApp?.applyDoctorAffiliation('hospital', 'landing')">
+                    🏨 <span id="landingDocHospPillText">Civil Hospital Transfusion Unit</span>
+                  </button>
+                  <button type="button" class="suggestion-pill-btn" id="btnLandingDocBankPill" onclick="window.HemaCareApp?.applyDoctorAffiliation('bank', 'landing')">
+                    🩸 <span id="landingDocBankPillText">Red Cross Blood Bank Screening</span>
+                  </button>
+                </div>
+              </div>
+
               <div class="input-row-2">
                 <div class="form-group">
                   <label class="form-label" for="landingDoctorRegNum">Medical Registration No (GMC/MCI) <span
@@ -323,7 +453,7 @@
                 <div class="form-group" style="margin-bottom:0;">
                   <label class="form-label" for="landingDoctorHospital">Hospital / Clinical Affiliation <span
                       class="req">*</span></label>
-                  <input type="text" id="landingDoctorHospital" class="input-control"
+                  <input type="text" id="landingDoctorHospital" class="input-control" list="hospitalDataList"
                     placeholder="e.g. Civil Hospital Ahmedabad">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
@@ -340,12 +470,31 @@
               <div style="font-size:12px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">
                 🏥 Blood Bank Staff Assignment &amp; Center
               </div>
+
+              <!-- Smart Suggestion for Blood Bank Staff -->
+              <div class="smart-suggestion-box" id="landingStaffBankSuggestion">
+                <div class="suggestion-header">
+                  <span class="suggestion-icon">💡</span>
+                  <span class="suggestion-label">Intelligent Blood Bank Recommendation:</span>
+                </div>
+                <div class="suggestion-content">
+                  <div>
+                    <span class="suggestion-name" id="landingStaffSuggestedBankName">Red Cross Blood Bank</span>
+                    <span class="suggestion-detail" id="landingStaffSuggestedBankDetail">(Ahmedabad Central • Navrangpura)</span>
+                  </div>
+                  <button type="button" class="btn-suggestion-apply" id="btnLandingStaffApplyBank" onclick="window.HemaCareApp?.applySuggestedBank('landing')">
+                    ⚡ Auto-Select Bank
+                  </button>
+                </div>
+              </div>
+
               <div class="input-row-2">
                 <div class="form-group" style="margin-bottom:0;">
                   <label class="form-label" for="landingStaffRegOrg">Blood Bank / Center Name <span
                       class="req">*</span></label>
-                  <input type="text" id="landingStaffRegOrg" class="input-control"
-                    placeholder="e.g. Red Cross Blood Center">
+                  <input type="text" id="landingStaffRegOrg" class="input-control" list="bloodBankDataList"
+                    placeholder="e.g. Red Cross Blood Bank">
+                  <input type="hidden" id="landingStaffBankId" value="4001">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                   <label class="form-label" for="landingStaffRegCampId">Staff Employee ID</label>
@@ -361,11 +510,29 @@
               <div style="font-size:12px; font-weight:700; color:#4338CA; margin-bottom:8px;">
                 🏨 Hospital Coordinator Requisition Assignment
               </div>
+
+              <!-- Smart Suggestion for Hospital Coordinator -->
+              <div class="smart-suggestion-box hospital-suggestion" id="landingHospitalSuggestion">
+                <div class="suggestion-header">
+                  <span class="suggestion-icon">💡</span>
+                  <span class="suggestion-label">Partner Hospital Recommendation:</span>
+                </div>
+                <div class="suggestion-content">
+                  <div>
+                    <span class="suggestion-name" id="landingSuggestedHospitalName">Civil Hospital Ahmedabad</span>
+                    <span class="suggestion-detail" id="landingSuggestedHospitalDetail">(Asarwa • Code-Red Facility)</span>
+                  </div>
+                  <button type="button" class="btn-suggestion-apply" id="btnLandingHospitalApply" onclick="window.HemaCareApp?.applySuggestedHospital('landing')">
+                    ⚡ Link Hospital
+                  </button>
+                </div>
+              </div>
+
               <div class="input-row-2">
                 <div class="form-group" style="margin-bottom:0;">
                   <label class="form-label" for="landingHospitalName">Affiliated Hospital Name <span
                       class="req">*</span></label>
-                  <input type="text" id="landingHospitalName" class="input-control"
+                  <input type="text" id="landingHospitalName" class="input-control" list="hospitalDataList"
                     placeholder="e.g. Civil Hospital Ahmedabad">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
@@ -382,11 +549,29 @@
               <div style="font-size:12px; font-weight:700; color:#B45309; margin-bottom:8px;">
                 🎪 Camp Organizer Organization &amp; Drive Assignment
               </div>
+
+              <!-- Smart Suggestion for Camp Staff -->
+              <div class="smart-suggestion-box camp-suggestion" id="landingCampSuggestion">
+                <div class="suggestion-header">
+                  <span class="suggestion-icon">🎪</span>
+                  <span class="suggestion-label">Active / Upcoming Blood Drive Recommendation:</span>
+                </div>
+                <div class="suggestion-content">
+                  <div>
+                    <span class="suggestion-name" id="landingSuggestedCampName">Youth Rotary Blood Drive</span>
+                    <span class="suggestion-detail" id="landingSuggestedCampDetail">(Camp #6004 • Rajkot • Active Now)</span>
+                  </div>
+                  <button type="button" class="btn-suggestion-apply" id="btnLandingCampApply" onclick="window.HemaCareApp?.applySuggestedCamp('landing')">
+                    ⚡ Assign Drive
+                  </button>
+                </div>
+              </div>
+
               <div class="input-row-2">
                 <div class="form-group" style="margin-bottom:0;">
                   <label class="form-label" for="landingCampOrgName">Organization / NGO / Rotary Club <span
                       class="req">*</span></label>
-                  <input type="text" id="landingCampOrgName" class="input-control"
+                  <input type="text" id="landingCampOrgName" class="input-control" list="campDataList"
                     placeholder="e.g. Red Cross Gujarat / Rotary Club">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
@@ -907,6 +1092,53 @@
                   <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Zydus Medical &amp; Lions Blood Center</div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Super Operator Staff & Facility Assignment Matrix -->
+          <div class="registry-panel" style="margin-bottom:var(--sp-6);" id="superAdminOperatorPanel">
+            <div class="registry-toolbar" style="flex-wrap:wrap; gap:var(--sp-3);">
+              <div>
+                <div class="section-title" style="font-size:16px;">👥 Regional Operators &amp; Facility Assignment Matrix</div>
+                <div class="section-subtitle">Real-time governance and smart station allocation for Blood Bank Staff, Doctors, Hospital Coordinators, and Camp Teams across Gujarat</div>
+              </div>
+              <div style="display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap;">
+                <div class="operator-filter-tabs" id="operatorFilterTabs">
+                  <button type="button" class="op-tab-btn active" data-filter="all" onclick="window.HemaCareApp?.filterOperators('all')">All Roles (<span id="countAllOps">0</span>)</button>
+                  <button type="button" class="op-tab-btn" data-filter="Blood Bank Staff" onclick="window.HemaCareApp?.filterOperators('Blood Bank Staff')">🏥 Blood Bank Staff (<span id="countBankStaff">0</span>)</button>
+                  <button type="button" class="op-tab-btn" data-filter="Doctor" onclick="window.HemaCareApp?.filterOperators('Doctor')">🩺 Doctors (<span id="countDocStaff">0</span>)</button>
+                  <button type="button" class="op-tab-btn" data-filter="Hospital Coordinator" onclick="window.HemaCareApp?.filterOperators('Hospital Coordinator')">🏨 Hospital Coords (<span id="countHospStaff">0</span>)</button>
+                  <button type="button" class="op-tab-btn" data-filter="Camp Staff" onclick="window.HemaCareApp?.filterOperators('Camp Staff')">🎪 Camp Staff (<span id="countCampStaff">0</span>)</button>
+                  <button type="button" class="op-tab-btn" data-filter="Donor" onclick="window.HemaCareApp?.filterOperators('Donor')">🩸 Donors (<span id="countDonorOps">0</span>)</button>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="window.HemaCareApp?.openAddStaffModal()" type="button" style="box-shadow:0 0 15px rgba(220,38,38,0.35);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>+ Register &amp; Assign Staff</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Operators Table -->
+            <div class="table-responsive">
+              <table class="clinical-table">
+                <thead>
+                  <tr>
+                    <th>Operator ID &amp; Name</th>
+                    <th>System Role</th>
+                    <th>Assigned Blood Bank / Camp / Facility</th>
+                    <th>District Hub</th>
+                    <th>Contact &amp; Credentials</th>
+                    <th>Station Status</th>
+                    <th style="text-align:right;">Super Operator Action</th>
+                  </tr>
+                </thead>
+                <tbody id="superAdminStaffTableBody">
+                  <!-- Injected dynamically -->
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -1577,6 +1809,46 @@
                 </thead>
                 <tbody id="staffDonorsTableBody">
                   <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Emergency Blood Bank Requests & Incoming Dispatches Queue -->
+          <div class="registry-panel" style="margin-top:var(--sp-6);" id="staffBloodBankRequestsPanel">
+            <div class="registry-toolbar" style="flex-wrap:wrap; gap:var(--sp-3);">
+              <div>
+                <div class="section-title" style="font-size:16px;">🚨 Emergency Blood Bank Requests &amp; Incoming Dispatches</div>
+                <div class="section-subtitle">Real-time emergency requisitions from Civil, Apollo, and regional hospitals with cold-chain dispatch status</div>
+              </div>
+              <div style="display:flex; gap:var(--sp-2);">
+                <button class="btn btn-secondary btn-sm" onclick="window.HemaCareApp?.syncWithBackend(true)" type="button">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                  </svg>
+                  <span>Sync Requisitions</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="clinical-table">
+                <thead>
+                  <tr>
+                    <th>Requisition ID</th>
+                    <th>Hospital / Facility</th>
+                    <th>Patient Name</th>
+                    <th>Blood Group</th>
+                    <th>Units</th>
+                    <th>Urgency Level</th>
+                    <th>Dispatch / Transit Status</th>
+                    <th>Matched Donor / Allocation</th>
+                    <th style="text-align:right;">Staff Action</th>
+                  </tr>
+                </thead>
+                <tbody id="staffRequestsTableBody">
+                  <!-- Populated dynamically with incoming requests and dispatch actions -->
                 </tbody>
               </table>
             </div>
@@ -3426,6 +3698,23 @@
             <div style="font-size:11.5px; font-weight:700; color:var(--color-success); margin-bottom:6px;">
               🩺 Doctor Medical Council Credentials &amp; Verification
             </div>
+
+            <!-- Smart Suggestion for Doctor -->
+            <div class="smart-suggestion-box doctor-suggestion" id="modalDoctorSuggestionBox">
+              <div class="suggestion-header">
+                <span class="suggestion-icon">💡</span>
+                <span class="suggestion-label">Intelligent Station Recommendation for Doctor:</span>
+              </div>
+              <div class="suggestion-pills-row">
+                <button type="button" class="suggestion-pill-btn" id="btnModalDocHospPill" onclick="window.HemaCareApp?.applyDoctorAffiliation('hospital', 'modal')">
+                  🏨 <span id="modalDocHospPillText">Civil Hospital Transfusion Unit</span>
+                </button>
+                <button type="button" class="suggestion-pill-btn" id="btnModalDocBankPill" onclick="window.HemaCareApp?.applyDoctorAffiliation('bank', 'modal')">
+                  🩸 <span id="modalDocBankPillText">Red Cross Blood Bank Screening</span>
+                </button>
+              </div>
+            </div>
+
             <div class="input-row-2">
               <div class="form-group">
                 <label class="form-label" for="modalDoctorRegNum">MCI / GMC Reg No <span class="req">*</span></label>
@@ -3441,7 +3730,7 @@
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalDoctorHospital">Hospital Affiliation <span
                     class="req">*</span></label>
-                <input type="text" id="modalDoctorHospital" class="input-control" placeholder="e.g. Civil Hospital">
+                <input type="text" id="modalDoctorHospital" class="input-control" list="hospitalDataList" placeholder="e.g. Civil Hospital">
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalDoctorExp">Experience (Years)</label>
@@ -3456,12 +3745,31 @@
             <div style="font-size:11.5px; font-weight:700; color:var(--color-primary); margin-bottom:6px;">
               🏥 Blood Bank Staff Assignment
             </div>
+
+            <!-- Smart Suggestion for Blood Bank Staff -->
+            <div class="smart-suggestion-box" id="modalStaffBankSuggestion">
+              <div class="suggestion-header">
+                <span class="suggestion-icon">💡</span>
+                <span class="suggestion-label">Intelligent Blood Bank Recommendation:</span>
+              </div>
+              <div class="suggestion-content">
+                <div>
+                  <span class="suggestion-name" id="modalStaffSuggestedBankName">Red Cross Blood Bank</span>
+                  <span class="suggestion-detail" id="modalStaffSuggestedBankDetail">(Ahmedabad Central • Navrangpura)</span>
+                </div>
+                <button type="button" class="btn-suggestion-apply" id="btnModalStaffApplyBank" onclick="window.HemaCareApp?.applySuggestedBank('modal')">
+                  ⚡ Auto-Select Bank
+                </button>
+              </div>
+            </div>
+
             <div class="input-row-2">
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalStaffRegOrg">Blood Bank / Center Name <span
                     class="req">*</span></label>
-                <input type="text" id="modalStaffRegOrg" class="input-control"
-                  placeholder="e.g. Red Cross Blood Center">
+                <input type="text" id="modalStaffRegOrg" class="input-control" list="bloodBankDataList"
+                  placeholder="e.g. Red Cross Blood Bank">
+                <input type="hidden" id="modalStaffBankId" value="4001">
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalStaffRegCampId">Staff Employee ID</label>
@@ -3477,11 +3785,29 @@
             <div style="font-size:11.5px; font-weight:700; color:#4338CA; margin-bottom:6px;">
               🏨 Hospital Coordinator Assignment
             </div>
+
+            <!-- Smart Suggestion for Hospital Coordinator -->
+            <div class="smart-suggestion-box hospital-suggestion" id="modalHospitalSuggestion">
+              <div class="suggestion-header">
+                <span class="suggestion-icon">💡</span>
+                <span class="suggestion-label">Partner Hospital Recommendation:</span>
+              </div>
+              <div class="suggestion-content">
+                <div>
+                  <span class="suggestion-name" id="modalSuggestedHospitalName">Civil Hospital Ahmedabad</span>
+                  <span class="suggestion-detail" id="modalSuggestedHospitalDetail">(Asarwa • Code-Red Facility)</span>
+                </div>
+                <button type="button" class="btn-suggestion-apply" id="btnModalHospitalApply" onclick="window.HemaCareApp?.applySuggestedHospital('modal')">
+                  ⚡ Link Hospital
+                </button>
+              </div>
+            </div>
+
             <div class="input-row-2">
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalHospitalName">Affiliated Hospital Name <span
                     class="req">*</span></label>
-                <input type="text" id="modalHospitalName" class="input-control" placeholder="e.g. Civil Hospital">
+                <input type="text" id="modalHospitalName" class="input-control" list="hospitalDataList" placeholder="e.g. Civil Hospital">
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalHospitalCoordId">Coordinator ID</label>
@@ -3497,10 +3823,28 @@
             <div style="font-size:11.5px; font-weight:700; color:#B45309; margin-bottom:6px;">
               🎪 Camp Organizer Assignment
             </div>
+
+            <!-- Smart Suggestion for Camp Staff -->
+            <div class="smart-suggestion-box camp-suggestion" id="modalCampSuggestion">
+              <div class="suggestion-header">
+                <span class="suggestion-icon">🎪</span>
+                <span class="suggestion-label">Active / Upcoming Blood Drive Recommendation:</span>
+              </div>
+              <div class="suggestion-content">
+                <div>
+                  <span class="suggestion-name" id="modalSuggestedCampName">Youth Rotary Blood Drive</span>
+                  <span class="suggestion-detail" id="modalSuggestedCampDetail">(Camp #6004 • Rajkot • Active Now)</span>
+                </div>
+                <button type="button" class="btn-suggestion-apply" id="btnModalCampApply" onclick="window.HemaCareApp?.applySuggestedCamp('modal')">
+                  ⚡ Assign Drive
+                </button>
+              </div>
+            </div>
+
             <div class="input-row-2">
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalCampOrgName">Organization / NGO <span class="req">*</span></label>
-                <input type="text" id="modalCampOrgName" class="input-control" placeholder="e.g. Red Cross Gujarat">
+                <input type="text" id="modalCampOrgName" class="input-control" list="campDataList" placeholder="e.g. Red Cross Gujarat">
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" for="modalCampOrgActiveId">Assigned Camp ID</label>
@@ -4410,17 +4754,213 @@
     </div>
   </div>
 
+  <!-- Modal 15: Super Operator Register & Assign Staff / Operator Modal -->
+  <div class="modal-backdrop" id="modalSuperAdminAddStaff" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2"
+              style="vertical-align:middle; margin-right:6px;">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <line x1="19" y1="8" x2="19" y2="14"></line>
+              <line x1="22" y1="11" x2="16" y2="11"></line>
+            </svg>
+            Provision &amp; Assign Operator Staff
+          </div>
+          <div class="modal-subtitle">Super Operator Authority — Intelligent recommendation engine automatically matches the operator to the nearest Blood Bank, Camp, or Hospital.</div>
+        </div>
+        <button class="modal-close" data-close="modalSuperAdminAddStaff" aria-label="Close dialog" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="formSuperAdminAddStaff" novalidate>
+        <div class="modal-body">
+          <div class="input-row-2">
+            <div class="form-group">
+              <label class="form-label" for="adminStaffRole">Operator Role <span class="req">*</span></label>
+              <select id="adminStaffRole" class="select-control" required onchange="window.HemaCareApp?.updateAdminStaffSuggestions()">
+                <option value="Blood Bank Staff" selected>🏥 Blood Bank Staff</option>
+                <option value="Doctor">🩺 Doctor (Medical Officer)</option>
+                <option value="Hospital Coordinator">🏨 Hospital Coordinator</option>
+                <option value="Camp Staff">🎪 Camp Staff / Organizer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="adminStaffCity">Operating District / City <span class="req">*</span></label>
+              <select id="adminStaffCity" class="select-control" required onchange="window.HemaCareApp?.updateAdminStaffSuggestions()">
+                <option value="Ahmedabad" selected>Ahmedabad (Central HQ)</option>
+                <option value="Surat">Surat (Southern Hub)</option>
+                <option value="Vadodara">Vadodara (Eastern Hub)</option>
+                <option value="Rajkot">Rajkot (Saurashtra Hub)</option>
+                <option value="Mehsana">Mehsana (Northern Hub)</option>
+                <option value="Gandhinagar">Gandhinagar</option>
+                <option value="Bhavnagar">Bhavnagar</option>
+                <option value="Jamnagar">Jamnagar</option>
+                <option value="Anand">Anand</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dynamic Live Smart Suggestion Display for Super Operator -->
+          <div class="smart-suggestion-box" id="adminStaffSuggestionBox" style="margin-bottom:var(--sp-4);">
+            <div class="suggestion-header">
+              <span class="suggestion-icon">🎯</span>
+              <span class="suggestion-label">AI Station Recommendation Engine:</span>
+            </div>
+            <div class="suggestion-content">
+              <div>
+                <span class="suggestion-name" id="adminSuggestedFacilityName">Red Cross Blood Bank</span>
+                <div class="suggestion-detail" id="adminSuggestedFacilityReason">Ahmedabad Central HQ • High inventory flow &amp; cold-chain distribution center.</div>
+              </div>
+              <button type="button" class="btn-suggestion-apply" id="btnAdminApplySuggestion" onclick="window.HemaCareApp?.applyAdminSuggestion()">
+                ⚡ Apply Recommended Station
+              </button>
+            </div>
+          </div>
+
+          <div class="input-row-2">
+            <div class="form-group">
+              <label class="form-label" for="adminStaffName">Full Legal Name <span class="req">*</span></label>
+              <input type="text" id="adminStaffName" class="input-control" required placeholder="e.g. Dr. Alok Trivedi">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="adminStaffEmail">Official Email <span class="req">*</span></label>
+              <input type="email" id="adminStaffEmail" class="input-control" required placeholder="alok.trivedi@raktsetu.org">
+            </div>
+          </div>
+
+          <div class="input-row-2">
+            <div class="form-group">
+              <label class="form-label" for="adminStaffPhone">Mobile Phone <span class="req">*</span></label>
+              <input type="tel" id="adminStaffPhone" class="input-control" required placeholder="9876543210" value="9876543210">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="adminStaffFacilityName">Assigned Facility / Center / Camp <span class="req">*</span></label>
+              <input type="text" id="adminStaffFacilityName" class="input-control" list="bloodBankDataList" required placeholder="Select or type facility">
+              <input type="hidden" id="adminStaffBankId" value="4001">
+              <input type="hidden" id="adminStaffCampId" value="">
+              <input type="hidden" id="adminStaffHospitalName" value="">
+            </div>
+          </div>
+
+          <div class="input-row-2" id="adminDoctorExtraRow" style="display:none;">
+            <div class="form-group">
+              <label class="form-label" for="adminDoctorRegNo">Medical Council Reg No (GMC/MCI)</label>
+              <input type="text" id="adminDoctorRegNo" class="input-control" placeholder="e.g. GMC-54210" value="GMC-54210">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="adminDoctorSpec">Specialization</label>
+              <input type="text" id="adminDoctorSpec" class="input-control" placeholder="e.g. Transfusion Medicine" value="Transfusion Medicine">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalSuperAdminAddStaff">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitAdminAddStaff">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Confirm &amp; Provision Operator</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 16: Super Operator Reassign Staff Facility Modal -->
+  <div class="modal-backdrop" id="modalSuperAdminReassignStaff" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff2d55" stroke-width="2.2"
+              style="vertical-align:middle; margin-right:6px;">
+              <path d="M21 2v6h-6"></path>
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+              <path d="M3 22v-6h6"></path>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            </svg>
+            Reassign Operator Station
+          </div>
+          <div class="modal-subtitle">Transfer or redeploy operator to a different Blood Bank, Donation Drive, or Partner Hospital.</div>
+        </div>
+        <button class="modal-close" data-close="modalSuperAdminReassignStaff" aria-label="Close dialog" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="formSuperAdminReassignStaff" novalidate>
+        <input type="hidden" id="reassignStaffId">
+        <div class="modal-body">
+          <div id="reassignStaffSummary" style="background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.12); padding:12px; border-radius:var(--radius-md); margin-bottom:var(--sp-4);">
+            <!-- Populated dynamically -->
+          </div>
+
+          <!-- Smart Recommendation for Reassignment -->
+          <div class="smart-suggestion-box" id="reassignSuggestionBox" style="margin-bottom:var(--sp-4);">
+            <div class="suggestion-header">
+              <span class="suggestion-icon">💡</span>
+              <span class="suggestion-label">Suggested Deployment Station:</span>
+            </div>
+            <div class="suggestion-content">
+              <div>
+                <span class="suggestion-name" id="reassignSuggestedName">Red Cross Blood Bank</span>
+                <span class="suggestion-detail" id="reassignSuggestedDetail">(Ahmedabad HQ)</span>
+              </div>
+              <button type="button" class="btn-suggestion-apply" id="btnApplyReassignSuggestion" onclick="window.HemaCareApp?.applyReassignSuggestion()">
+                ⚡ Select Recommendation
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reassignFacilitySelect">Select New Target Facility / Camp / Bank <span class="req">*</span></label>
+            <select id="reassignFacilitySelect" class="select-control" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reassignNotes">Transfer Justification / Governance Reason</label>
+            <input type="text" id="reassignNotes" class="input-control" placeholder="e.g. Urgent staffing required for ongoing donation drive">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modalSuperAdminReassignStaff">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitReassignStaff">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Confirm Station Transfer</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION CONTAINER (Top Right) -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
   <!-- ==========================================================================
        MODULAR SCRIPT DEPENDENCIES
        ========================================================================== -->
-  <script src="js/toast.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/store.js"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/toast.js?v=3.0.0"></script>
+  <script src="js/api.js?v=3.0.0"></script>
+  <script src="js/store.js?v=3.0.0"></script>
+  <script src="js/charts.js?v=3.0.0"></script>
+  <script src="js/app.js?v=3.0.0"></script>
+  <script src="js/spatial.js?v=3.0.0"></script>
 </body>
 
 </html>

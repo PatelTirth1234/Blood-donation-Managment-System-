@@ -110,11 +110,18 @@
       { id: 9, userRole: 'Super Admin', title: 'Security Audit & RBAC Cleared', message: 'Central Node connected with 6 active role domains and audited telemetry.', type: 'success', isRead: false, timestamp: 'Just now' }
     ],
     staff: [
-      { id: 1, name: 'Tirth Patel', phone: '9876543210', email: 'admin@hemacare.org', role: 'Super Admin', organization: 'HemaCare OS Master HQ' },
-      { id: 1001, name: 'Kavita Patel', phone: '9876543210', email: 'kavita.staff@raktsetu.org', role: 'Blood Bank Staff', organization: 'Apex Central Blood Bank' },
-      { id: 2001, name: 'Anil Shah', phone: '9876543205', email: 'coordinator.hospital@civil.org', role: 'Hospital Coordinator', organization: 'Civil Hospital Ahmedabad' },
-      { id: 2002, name: 'Meera Joshi', phone: '9876543204', email: 'organizer.meera@redcross.org', role: 'Camp Organizer', organization: 'Red Cross Society Gujarat' },
-      { id: 3001, name: 'Dr. Rakesh Patel', phone: '9876543201', email: 'dr.rakesh@civilhospital.in', role: 'Doctor', medicalRegNo: 'GMC-48291', specialization: 'Transfusion Medicine' }
+      { id: 1, name: 'Tirth Patel', phone: '9876543210', email: 'admin@hemacare.org', role: 'Super Admin', organization: 'HemaCare OS Master HQ', city: 'Ahmedabad' },
+      { id: 1001, name: 'Kavita Patel', phone: '9876543210', email: 'kavita.staff@raktsetu.org', role: 'Blood Bank Staff', organization: 'Red Cross Blood Bank', bankId: 4001, bankName: 'Red Cross Blood Bank', city: 'Ahmedabad' },
+      { id: 2001, name: 'Anil Shah', phone: '9876543205', email: 'coordinator.hospital@civil.org', role: 'Hospital Coordinator', organization: 'Civil Hospital Ahmedabad', hospitalAffiliation: 'Civil Hospital', city: 'Ahmedabad' },
+      { id: 2002, name: 'Meera Joshi', phone: '9876543204', email: 'organizer.meera@redcross.org', role: 'Camp Organizer', organization: 'Red Cross Society Gujarat', assignedCampId: 6004, campName: 'Youth Rotary Blood Drive', city: 'Rajkot' },
+      { id: 3001, name: 'Dr. Rakesh Patel', phone: '9876543201', email: 'dr.rakesh@civilhospital.in', role: 'Doctor', medicalRegNo: 'GMC-48291', specialization: 'Transfusion Medicine', hospitalAffiliation: 'Civil Hospital', bankId: 4001, bankName: 'Red Cross Blood Bank', city: 'Ahmedabad' }
+    ],
+    bloodBanks: [
+      { id: 4001, bankId: 4001, name: 'Red Cross Blood Bank', city: 'Ahmedabad', address: 'Navrangpura, Ahmedabad', phone: '0791111111', email: 'redcross.ahmedabad@raktsetu.org', activeStaff: 3, inventoryLoad: 'High' },
+      { id: 4002, bankId: 4002, name: 'Life Care Blood Bank', city: 'Surat', address: 'Ring Road, Surat', phone: '0792222222', email: 'lifecare.surat@raktsetu.org', activeStaff: 2, inventoryLoad: 'Moderate' },
+      { id: 4003, bankId: 4003, name: 'City Blood Bank', city: 'Vadodara', address: 'Alkapuri, Vadodara', phone: '0793333333', email: 'cityblood.baroda@raktsetu.org', activeStaff: 2, inventoryLoad: 'Moderate' },
+      { id: 4004, bankId: 4004, name: 'Hope Blood Bank', city: 'Rajkot', address: 'Kalawad Road, Rajkot', phone: '0794444444', email: 'hope.rajkot@raktsetu.org', activeStaff: 2, inventoryLoad: 'Critical Need' },
+      { id: 4005, bankId: 4005, name: 'Health Blood Bank', city: 'Mehsana', address: 'Highway Road, Mehsana', phone: '0795555555', email: 'health.mehsana@raktsetu.org', activeStaff: 1, inventoryLoad: 'Low' }
     ],
     hospitals: [
       { id: 5001, name: 'Civil Hospital', city: 'Ahmedabad', address: 'Asarwa, Ahmedabad', coordinator: 'Anil Shah', contact: '9876543205' },
