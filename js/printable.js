@@ -1084,3 +1084,4 @@
   window.HemaCarePrint = HemaCarePrint;
 
 })(window, document);
+

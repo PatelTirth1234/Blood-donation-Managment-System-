@@ -8,6 +8,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "db:migrate": "node database/migrate.js",
+    "db:sync": "node sync_to_blood_donation.js",
     "db:init": "node database/migrate.js",
     "db:seed": "node database/reset_and_seed.js",
     "test:db": "node -e \"const db = require('./db'); db.testConnection().then(console.log);\"",
