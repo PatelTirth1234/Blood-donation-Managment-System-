@@ -4299,7 +4299,8 @@
             <td>${d.phone}</td>
             <td>${d.email || 'N/A'}</td>
             <td><span class="status-badge-chip ${!d.disease || d.disease === 'None' ? 'status-badge-cleared' : 'status-badge-deferred'}">${!d.disease || d.disease === 'None' ? '✓ Cleared' : '⏳ Pending'}</span></td>
-            <td style="text-align:right;">
+            <td style="text-align:right; white-space:nowrap;">
+              <button class="btn btn-sm btn-secondary" onclick="window.HemaCareApp?.printDonorCertificate(${d.id})" title="Print Certificate & Donor Card" style="padding:2px 7px; font-size:11px; border-color:#ef4444; color:#ef4444;">🖨️ Print</button>
               <button class="btn btn-sm btn-secondary" onclick="window.HemaCareApp?.openEditDonorModal(${d.id})">Edit</button>
               <button class="btn btn-sm btn-danger" onclick="window.HemaCareApp?.deleteDonor(${d.id})">Delete</button>
             </td>
@@ -4322,6 +4323,9 @@
             <td>${r.disease || 'Trauma'}</td>
             <td><span class="status-badge-chip ${r.status === 'Dispatched' ? 'status-badge-cleared' : 'status-badge-deferred'}">${r.status || 'Pending'}</span></td>
             <td>${r.matchedDonorName ? `✓ ${r.matchedDonorName} (#${r.matchedDonorId})` : '<span style="color:var(--text-muted);">Auto-matching...</span>'}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              <button class="btn btn-sm btn-secondary" onclick="window.HemaCareApp?.printDispatchSlip(${r.id})" title="Print Delivery Slip / Challan" style="padding:2px 7px; font-size:11px;">🖨️ Slip</button>
+            </td>
           </tr>
         `).join('');
       }
@@ -4713,6 +4717,23 @@
         const camps = (window.localStore.camps || []).filter(c => c.name.toLowerCase().includes(query) || c.city.toLowerCase().includes(query));
 
         let hits = [];
+
+        const printCommands = [
+          { type: 'Print', title: '🖨️ Print Blood Donation Certificate & Card', sub: 'Generate verified donor appreciation certificate & wallet ID', action: () => { this.closeModal('modalCmdPalette'); this.printDonorCertificate(); } },
+          { type: 'Print', title: '🖨️ Print Cold Storage Stock Audit Report', sub: 'Full 8-group inventory & cold-chain refrigeration audit', action: () => { this.closeModal('modalCmdPalette'); this.printInventoryReport(); } },
+          { type: 'Print', title: '🖨️ Print Hospital Dispatch Slip & Delivery Memo', sub: 'Code Red transfusion delivery challan & crossmatch slip', action: () => { this.closeModal('modalCmdPalette'); this.printDispatchSlip(); } },
+          { type: 'Print', title: '🖨️ Print Blood Donation Camp Execution Report', sub: 'Post-drive collection metrics & phlebotomy summary', action: () => { this.closeModal('modalCmdPalette'); this.printCampReport(); } },
+          { type: 'Print', title: '🖨️ Print Pre-Donation Clinical Screening Form', sub: 'Voluntary intake questionnaire & vital checkup form', action: () => { this.closeModal('modalCmdPalette'); this.printScreeningForm(); } },
+          { type: 'Print', title: '🖨️ Print Master Donor Directory Roster', sub: 'State donor registry and clinical clearance table', action: () => { this.closeModal('modalCmdPalette'); this.printDonorsDirectoryReport(); } },
+          { type: 'Print', title: '🖨️ Print Clinical Compliance & Audit Ledger', sub: 'Cryptographically hashed immutable audit trail', action: () => { this.closeModal('modalCmdPalette'); this.printAuditReport(); } }
+        ];
+
+        printCommands.forEach(pc => {
+          if (pc.title.toLowerCase().includes(query) || pc.sub.toLowerCase().includes(query) || 'print'.includes(query)) {
+            hits.push(pc);
+          }
+        });
+
         donors.forEach(d => hits.push({ type: 'Donor', title: d.name, sub: `${d.bloodGroup} • ${d.city}`, action: () => { this.closeModal('modalCmdPalette'); this.viewDonorDetails(d.id); } }));
         camps.forEach(c => hits.push({ type: 'Camp', title: c.name, sub: `${c.city} • ${c.date}`, action: () => { this.closeModal('modalCmdPalette'); this.switchView('viewCamps'); } }));
 
@@ -4860,6 +4881,102 @@
         document.body.style.overflow = '';
       }
     }
+
+    // ========================================================================
+    // CLINICAL PRINT & REGULATORY REPORTING ENGINE
+    // ========================================================================
+    printDonorCertificate(donorId, donationData) {
+      let donor = null;
+      if (donorId) {
+        donor = (window.localStore.donors || []).find(d => d.id == donorId);
+      }
+      if (!donor) {
+        donor = this.currentUser && this.currentUser.role === 'Blood Donor' ? this.currentUser : (window.localStore.donors || [])[0];
+      }
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('certificate', { donor, donation: donationData });
+      } else {
+        window.print();
+      }
+    }
+
+    printDonorCard(donorId) {
+      let donor = null;
+      if (donorId) {
+        donor = (window.localStore.donors || []).find(d => d.id == donorId);
+      }
+      if (!donor) {
+        donor = (window.localStore.donors || [])[0] || this.currentUser;
+      }
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('donor_card', donor);
+      } else {
+        window.print();
+      }
+    }
+
+    printDispatchSlip(reqId) {
+      let req = null;
+      if (reqId) {
+        req = (window.localStore.requests || []).find(r => r.id == reqId);
+      }
+      if (!req) {
+        req = (window.localStore.requests || [])[0];
+      }
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('dispatch_slip', req);
+      } else {
+        window.print();
+      }
+    }
+
+    printInventoryReport() {
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('inventory_report', window.localStore?.inventory || []);
+      } else {
+        window.print();
+      }
+    }
+
+    printCampReport(campId) {
+      let camp = null;
+      if (campId) {
+        camp = (window.localStore.camps || []).find(c => c.id == campId);
+      }
+      if (!camp) {
+        camp = (window.localStore.camps || [])[0];
+      }
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('camp_report', camp);
+      } else {
+        window.print();
+      }
+    }
+
+    printScreeningForm(donorId) {
+      const donor = donorId ? (window.localStore.donors || []).find(d => d.id == donorId) : null;
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('screening_form', donor);
+      } else {
+        window.print();
+      }
+    }
+
+    printDonorsDirectoryReport() {
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('donors_roster', window.localStore?.donors || []);
+      } else {
+        window.print();
+      }
+    }
+
+    printAuditReport() {
+      if (window.HemaCarePrint) {
+        window.HemaCarePrint.openPreview('audit_report', window.localStore?.auditLogs || []);
+      } else {
+        window.print();
+      }
+    }
   }
 
   window.addEventListener('keydown', (e) => {
@@ -4921,6 +5038,14 @@
   window.filterDoctorReports = function (s) { const app = bootHemaCareOS(); return app ? app.filterDoctorReports(s) : null; };
   window.filterStaffDonors = function (t) { const app = bootHemaCareOS(); return app ? app.filterStaffDonors(t) : null; };
   window.toggleUserMenu = function (e) { const app = bootHemaCareOS(); return app ? app.toggleUserMenu(e) : null; };
+  window.printDonorCertificate = function (d, data) { const app = bootHemaCareOS(); return app ? app.printDonorCertificate(d, data) : null; };
+  window.printDonorCard = function (d) { const app = bootHemaCareOS(); return app ? app.printDonorCard(d) : null; };
+  window.printDispatchSlip = function (r) { const app = bootHemaCareOS(); return app ? app.printDispatchSlip(r) : null; };
+  window.printInventoryReport = function () { const app = bootHemaCareOS(); return app ? app.printInventoryReport() : null; };
+  window.printCampReport = function (c) { const app = bootHemaCareOS(); return app ? app.printCampReport(c) : null; };
+  window.printScreeningForm = function (d) { const app = bootHemaCareOS(); return app ? app.printScreeningForm(d) : null; };
+  window.printDonorsDirectoryReport = function () { const app = bootHemaCareOS(); return app ? app.printDonorsDirectoryReport() : null; };
+  window.printAuditReport = function () { const app = bootHemaCareOS(); return app ? app.printAuditReport() : null; };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootHemaCareOS);

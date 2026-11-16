@@ -1376,6 +1376,14 @@
             </div>
             <div style="display:flex; gap:var(--sp-3); align-items:center;">
               <span class="status-badge-eligible" id="donorHeaderEligibilityBadge">✓ Eligible for Donation</span>
+              <button class="btn btn-secondary" onclick="window.HemaCareApp?.printDonorCard(window.HemaCareApp?.currentUser?.id || 1001)" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Donor Card</span>
+              </button>
               <button class="btn btn-primary" onclick="window.HemaCareApp?.findNearbyCamps()" type="button">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -1458,7 +1466,17 @@
               <div class="registry-panel" style="margin-bottom:var(--sp-6);">
                 <div class="registry-toolbar">
                   <div class="section-title" style="font-size:15px;">Personal Donation History</div>
-                  <span class="pill-tag" id="donorHistoryTotalBadge">Total Donations: 4 Units</span>
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    <span class="pill-tag" id="donorHistoryTotalBadge">Total Donations: 4 Units</span>
+                    <button class="btn btn-secondary btn-sm" onclick="window.HemaCareApp?.printDonorCertificate(window.HemaCareApp?.currentUser?.id || 1001)" type="button">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                      </svg>
+                      <span>Print Certificate</span>
+                    </button>
+                  </div>
                 </div>
                 <div class="table-responsive">
                   <table class="clinical-table">
@@ -2166,6 +2184,17 @@
 
                 <!-- Tab 1: New Donor Intake Form -->
                 <form id="formDonorIntake" class="tab-pane active" novalidate>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border-default);">
+                    <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Pre-Donation Registration</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.HemaCareApp?.printScreeningForm()" style="font-size:11.5px; padding:3px 9px;">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                      </svg>
+                      <span>Print Screening Form</span>
+                    </button>
+                  </div>
                   <div class="form-group">
                     <label class="form-label" for="intakeName">Donor Full Name <span class="req">*</span></label>
                     <input type="text" id="intakeName" class="input-control" placeholder="e.g. Dr. Rajesh Shah"
@@ -2633,6 +2662,14 @@
                 donation history, and deferral status</div>
             </div>
             <div style="display:flex; gap:var(--sp-3);">
+              <button class="btn btn-secondary" onclick="window.HemaCareApp?.printDonorsDirectoryReport()" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Donors Roster</span>
+              </button>
               <button class="btn btn-secondary" onclick="window.HemaCareApp.exportDonorsCSV()" type="button">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -2684,11 +2721,19 @@
               <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">Refrigeration telemetry (+4.0°C
                 Whole Blood, -30°C Plasma) and batch expiration manager</div>
             </div>
-            <div style="display:flex; gap:var(--sp-3);">
+            <div style="display:flex; gap:var(--sp-3); align-items:center;">
               <span class="pill-tag"
                 style="background:var(--color-success-light); color:var(--color-success-hover); font-weight:700;">
                 ✓ Refrigeration Temp: +3.8°C (Optimal)
               </span>
+              <button class="btn btn-secondary" onclick="window.HemaCareApp?.printInventoryReport()" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Stock Audit Report</span>
+              </button>
             </div>
           </div>
 
@@ -2766,12 +2811,22 @@
               <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">Triaged requisition stream from
                 Civil, Apollo, Sterling, Wockhardt, and Zydus Hospitals</div>
             </div>
-            <button class="btn btn-emergency" onclick="window.HemaCareApp.openHospitalRequestModal()" type="button">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-              <span>+ Create Urgent Requisition</span>
-            </button>
+            <div style="display:flex; gap:var(--sp-3); align-items:center;">
+              <button class="btn btn-secondary" onclick="window.HemaCareApp?.printDispatchSlip()" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Dispatch Memo</span>
+              </button>
+              <button class="btn btn-emergency" onclick="window.HemaCareApp.openHospitalRequestModal()" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>+ Create Urgent Requisition</span>
+              </button>
+            </div>
           </div>
 
           <!-- Real-Time ER Triage Stream Matrix -->
@@ -2860,6 +2915,7 @@
                     <th>Diagnosis</th>
                     <th>Fulfillment Status</th>
                     <th>Matched Donor</th>
+                    <th style="text-align:right;">Slip</th>
                   </tr>
                 </thead>
                 <tbody id="hospitalRequestsTableBody">
@@ -2921,6 +2977,14 @@
             </div>
             <div style="display:flex; gap:var(--sp-3); align-items:center;">
               <span class="pill-tag" id="campCountPill">5 Active Camps in Gujarat</span>
+              <button class="btn btn-secondary" onclick="window.HemaCareApp?.printCampReport()" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Camp Report</span>
+              </button>
               <button class="btn btn-primary" id="btnOpenAddCampModal"
                 title="Organize and schedule a new blood donation camp" type="button">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -3101,8 +3165,17 @@
               <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">Cryptographically hashed immutable
                 ledger for FDA &amp; CDSCO regulatory compliance</div>
             </div>
-            <span class="pill-tag" style="font-family:var(--font-family-mono); font-size:11px;">SHA-256 Verified
-              Ledger</span>
+            <div style="display:flex; gap:var(--sp-3); align-items:center;">
+              <span class="pill-tag" style="font-family:var(--font-family-mono); font-size:11px;">SHA-256 Verified Ledger</span>
+              <button class="btn btn-secondary" onclick="window.HemaCareApp?.printAuditReport()" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Audit Log</span>
+              </button>
+            </div>
           </div>
 
           <div class="audit-table-wrap">
@@ -3350,6 +3423,16 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-close="modalDonorDetail">Close</button>
+        <button type="button" class="btn btn-secondary" id="btnPrintDonorFromDetail"
+          onclick="window.HemaCareApp?.printDonorCertificate(window.HemaCareApp?.currentlyViewedDonorId)"
+          style="border-color:#ef4444; color:#ef4444;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          <span>Print Certificate &amp; Card</span>
+        </button>
         <button type="button" class="btn btn-secondary" id="btnEditDonorFromDetail"
           style="border-color:var(--border-default);">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -4949,6 +5032,59 @@
     </div>
   </div>
 
+  <!-- Modal 17: Official Document Print Preview & Layout -->
+  <div class="modal-backdrop" id="modalPrintPreview" role="dialog" aria-modal="true" style="display:none;">
+    <div class="modal-dialog modal-print">
+      <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.12); padding:14px 20px;">
+        <div class="modal-title-wrap">
+          <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span id="printDocTitle">Clinical Document Print Layout</span>
+          </div>
+          <div class="modal-subtitle">Official State Transfusion &amp; Regulatory Form (Ready for standard A4 / Letter Printer &amp; PDF Export)</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pill-tag" id="printDocBadge" style="background:#fee2e2; color:#b91c1c; font-weight:800;">Official Format</span>
+          <button class="modal-close" data-close="modalPrintPreview" aria-label="Close dialog" type="button" onclick="window.HemaCarePrint?.close()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="background:#0b1120;">
+        <div id="printPreviewContent" style="width:100%; display:flex; justify-content:center;">
+          <!-- Dynamically injected printable document sheet -->
+        </div>
+      </div>
+
+      <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.12); padding:12px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:12px; color:var(--text-muted);">
+          💡 Tip: Use your browser destination to select <strong>"Save as PDF"</strong> or your local office printer.
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-secondary" data-close="modalPrintPreview" onclick="window.HemaCarePrint?.close()">
+            Close
+          </button>
+          <button type="button" class="btn btn-primary" id="btnExecutePrint" onclick="window.HemaCarePrint?.print()" style="background:#dc2626; border-color:#dc2626;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Print Document (Ctrl+P)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION CONTAINER (Top Right) -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
@@ -4961,6 +5097,7 @@
   <script src="js/charts.js?v=3.0.0"></script>
   <script src="js/app.js?v=3.0.0"></script>
   <script src="js/spatial.js?v=3.0.0"></script>
+  <script src="js/printable.js?v=3.0.0"></script>
 </body>
 
 </html>
