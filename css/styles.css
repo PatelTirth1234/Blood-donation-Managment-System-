@@ -2884,6 +2884,20 @@ input[type="radio"]:checked::after {
   margin-top: 2px;
 }
 
+.donor-doc-row {
+  transition: all 0.2s ease;
+}
+
+.donor-doc-row:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(225, 29, 72, 0.4) !important;
+  transform: translateX(3px);
+}
+
+.donor-doc-banner {
+  box-shadow: 0 4px 20px rgba(225, 29, 72, 0.15);
+}
+
 .emergency-broadcast-banner {
   background: #fff1f2;
   border: 1px solid #fecdd3;

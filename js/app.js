@@ -932,6 +932,18 @@
           this.routeUserToRoleDashboard(res.user.role);
           this.renderAll();
           window.showToast('success', 'Logged In', `Switched active session to ${res.user.name}`);
+          if (res.user.role === 'Blood Donor') {
+            const donorRecord = (window.localStore.donors || []).find(d => d.email === res.user.email || d.name === res.user.name) || {
+              id: res.user.id || 1001,
+              name: res.user.name,
+              bloodGroup: res.user.bloodGroup || 'B+',
+              city: res.user.city || 'Ahmedabad',
+              phone: res.user.phone || '9876543210'
+            };
+            setTimeout(() => {
+              this.openDonorPrintPrompt(donorRecord, false);
+            }, 500);
+          }
         }
       });
 
@@ -1013,6 +1025,18 @@
           this.routeUserToRoleDashboard(res.user.role);
           this.renderAll();
           window.showToast('success', 'Registered', `Account created for ${res.user.name}`);
+          if (role === 'Blood Donor') {
+            const newDonor = {
+              id: res.user.id || 1000 + (window.localStore.donors?.length || 1),
+              name: res.user.name || name,
+              bloodGroup: res.user.bloodGroup || bloodGroup,
+              city: res.user.city || city,
+              phone: res.user.phone || phone
+            };
+            setTimeout(() => {
+              this.openDonorPrintPrompt(newDonor, true);
+            }, 500);
+          }
         }
       });
     }
@@ -3670,8 +3694,22 @@
           });
 
           formIntake.reset();
+          this.closeModal('modalAddDonor');
           await this.syncWithBackend(false);
           window.showToast('success', 'Donor Registered', `Donor ${name} (${bloodGroup}) added successfully.`);
+          const createdDonor = (window.localStore.donors || []).find(d => d.name === name && d.phone === phone) || {
+            id: res?.data?.id || res?.donor?.id || 1000 + (window.localStore.donors?.length || 1),
+            name,
+            age,
+            gender,
+            bloodGroup,
+            phone,
+            city,
+            address
+          };
+          setTimeout(() => {
+            this.openDonorPrintPrompt(createdDonor, true);
+          }, 400);
         } catch (err) {
           window.showToast('error', 'Error', err.message);
         }
@@ -4366,7 +4404,7 @@
             <td>${d.email || 'N/A'}</td>
             <td><span class="status-badge-chip ${!d.disease || d.disease === 'None' ? 'status-badge-cleared' : 'status-badge-deferred'}">${!d.disease || d.disease === 'None' ? '✓ Cleared' : '⏳ Pending'}</span></td>
             <td style="text-align:right; white-space:nowrap;">
-              <button class="btn btn-sm btn-secondary" onclick="window.HemaCareApp?.printDonorCertificate(${d.id})" title="Print Certificate & Donor Card" style="padding:2px 7px; font-size:11px; border-color:#ef4444; color:#ef4444;">🖨️ Print</button>
+              <button class="btn btn-sm btn-secondary" onclick="window.HemaCareApp?.openDonorPrintPrompt((window.localStore.donors || []).find(x => x.id == ${d.id}))" title="Print Location Certificate & Donor Card" style="padding:2px 8px; font-size:11.5px; border-color:rgba(225,29,72,0.4); color:#fda4af; background:rgba(225,29,72,0.08);">🖨️ Documents</button>
               <button class="btn btn-sm btn-secondary" onclick="window.HemaCareApp?.openEditDonorModal(${d.id})">Edit</button>
               <button class="btn btn-sm btn-danger" onclick="window.HemaCareApp?.deleteDonor(${d.id})">Delete</button>
             </td>
@@ -4871,6 +4909,18 @@
           this.populateDropdowns();
           this.renderAll();
           window.showToast('success', 'Authenticated Successfully', `Welcome back, ${res.user.name}! (${res.user.role})`);
+          if (res.user.role === 'Blood Donor') {
+            const donorRecord = (window.localStore.donors || []).find(d => d.email === res.user.email || d.name === res.user.name) || {
+              id: res.user.id || 1001,
+              name: res.user.name,
+              bloodGroup: res.user.bloodGroup || 'B+',
+              city: res.user.city || 'Ahmedabad',
+              phone: res.user.phone || '9876543210'
+            };
+            setTimeout(() => {
+              this.openDonorPrintPrompt(donorRecord, false);
+            }, 500);
+          }
         }
       } catch (err) {
         window.showToast('error', 'Login Failed', err.message || 'Invalid credentials');
@@ -4909,6 +4959,18 @@
           this.populateDropdowns();
           this.renderAll();
           window.showToast('success', 'Account Registered', `Welcome to HemaCare OS, ${res.user.name}!`);
+          if (role === 'Blood Donor') {
+            const newDonor = {
+              id: res.user.id || 1000 + (window.localStore.donors?.length || 1),
+              name: res.user.name || name,
+              bloodGroup: res.user.bloodGroup || bloodGroup,
+              city: res.user.city || city,
+              phone: res.user.phone || phone
+            };
+            setTimeout(() => {
+              this.openDonorPrintPrompt(newDonor, true);
+            }, 500);
+          }
         }
       } catch (err) {
         window.showToast('error', 'Registration Failed', err.message || 'Could not register user');
@@ -4957,7 +5019,15 @@
         donor = (window.localStore.donors || []).find(d => d.id == donorId);
       }
       if (!donor) {
-        donor = this.currentUser && this.currentUser.role === 'Blood Donor' ? this.currentUser : (window.localStore.donors || [])[0];
+        donor = this.getCurrentDonorRecord();
+      }
+      if (!donationData) {
+        donationData = {
+          units: 1,
+          date: new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }),
+          hemoglobin: '14.2 g/dL (Cleared)',
+          camp: `${donor?.city || 'Ahmedabad'} Regional Blood Transfusion Center`
+        };
       }
       if (window.HemaCarePrint) {
         window.HemaCarePrint.openPreview('certificate', { donor, donation: donationData });
@@ -4972,7 +5042,7 @@
         donor = (window.localStore.donors || []).find(d => d.id == donorId);
       }
       if (!donor) {
-        donor = (window.localStore.donors || [])[0] || this.currentUser;
+        donor = this.getCurrentDonorRecord();
       }
       if (window.HemaCarePrint) {
         window.HemaCarePrint.openPreview('donor_card', donor);
@@ -5020,12 +5090,70 @@
     }
 
     printScreeningForm(donorId) {
-      const donor = donorId ? (window.localStore.donors || []).find(d => d.id == donorId) : null;
+      let donor = null;
+      if (donorId) {
+        donor = (window.localStore.donors || []).find(d => d.id == donorId);
+      }
+      if (!donor) {
+        donor = this.getCurrentDonorRecord();
+      }
       if (window.HemaCarePrint) {
         window.HemaCarePrint.openPreview('screening_form', donor);
       } else {
         window.print();
       }
+    }
+
+    openDonorPrintPrompt(donor, isNew = false) {
+      if (!donor) donor = this.getCurrentDonorRecord();
+      if (!donor) return;
+
+      const titleEl = document.getElementById('donorPrintPromptTitle');
+      const subEl = document.getElementById('donorPrintPromptSubtitle');
+      const nameEl = document.getElementById('donorPrintPromptName');
+      const idEl = document.getElementById('donorPrintPromptId');
+      const cityEl = document.getElementById('donorPrintPromptCity');
+      const bgEl = document.getElementById('donorPrintPromptBloodGroup');
+      const avatarEl = document.getElementById('donorPrintPromptAvatar');
+
+      if (titleEl) {
+        titleEl.textContent = isNew ? '🎉 New Donor Registered — Print Documents' : '🖨️ Donor Location Certificate & Identification';
+      }
+      if (subEl) {
+        subEl.textContent = isNew 
+          ? `Registration complete for ${donor.name}. Print official location certificate and ID card now.`
+          : 'State Blood Transfusion Council • Location Verification & Identification';
+      }
+      if (nameEl) nameEl.textContent = donor.name;
+      if (idEl) idEl.textContent = `#DON-${donor.id || 1001}`;
+      if (cityEl) cityEl.textContent = donor.city || 'Ahmedabad';
+      if (bgEl) bgEl.textContent = donor.bloodGroup || 'O+';
+      if (avatarEl) avatarEl.textContent = (donor.name || 'D').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+      const btnCert = document.getElementById('btnPromptPrintCert');
+      const btnCard = document.getElementById('btnPromptPrintCard');
+      const btnScreening = document.getElementById('btnPromptPrintScreening');
+
+      if (btnCert) {
+        btnCert.onclick = () => {
+          this.closeModal('modalDonorPrintPrompt');
+          this.printDonorCertificate(donor.id);
+        };
+      }
+      if (btnCard) {
+        btnCard.onclick = () => {
+          this.closeModal('modalDonorPrintPrompt');
+          this.printDonorCard(donor.id);
+        };
+      }
+      if (btnScreening) {
+        btnScreening.onclick = () => {
+          this.closeModal('modalDonorPrintPrompt');
+          this.printScreeningForm(donor.id);
+        };
+      }
+
+      this.openModal('modalDonorPrintPrompt');
     }
 
     printDonorsDirectoryReport() {
@@ -5112,6 +5240,7 @@
   window.printScreeningForm = function (d) { const app = bootHemaCareOS(); return app ? app.printScreeningForm(d) : null; };
   window.printDonorsDirectoryReport = function () { const app = bootHemaCareOS(); return app ? app.printDonorsDirectoryReport() : null; };
   window.printAuditReport = function () { const app = bootHemaCareOS(); return app ? app.printAuditReport() : null; };
+  window.openDonorPrintPrompt = function (d, isNew) { const app = bootHemaCareOS(); return app ? app.openDonorPrintPrompt(d, isNew) : null; };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootHemaCareOS);

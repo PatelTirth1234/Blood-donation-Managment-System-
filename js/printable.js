@@ -144,12 +144,12 @@
                   <div class="cert-gov-title">STATE BLOOD TRANSFUSION COUNCIL • GUJARAT</div>
                   <div class="cert-org-title">RAKTSETU CLINICAL BLOOD BANK & TRANSFUSION SERVICES</div>
                   <div class="cert-license">Licence No: G/28-A/7748 • Approved Under Drugs & Cosmetics Act, 1940</div>
-                  <div class="cert-main-heading">CERTIFICATE OF APPRECIATION</div>
-                  <div class="cert-sub-heading">HONOURING A VOLUNTARY BLOOD DONOR HERO</div>
+                  <div class="cert-main-heading">CERTIFICATE OF APPRECIATION & LOCATION VERIFICATION</div>
+                  <div class="cert-sub-heading">HONOURING A VOLUNTARY BLOOD DONOR HERO • STATE REGISTRY VERIFIED</div>
                 </div>
                 <div class="cert-emblem-right">
                   <div class="cert-qr-box">
-                    <div style="font-size:10px; font-weight:700; color:#1e293b; margin-bottom:2px;">SECURE VERIFIED</div>
+                    <div style="font-size:10px; font-weight:700; color:#1e293b; margin-bottom:2px;">LOCATION VERIFIED</div>
                     <div class="cert-barcode">|||| | ||||| || |||| |</div>
                     <div style="font-size:9px; font-family:monospace; color:#64748b;">${certNo}</div>
                   </div>
@@ -160,7 +160,7 @@
               <div class="cert-body">
                 <div class="cert-prose">This is to gratefully certify and place on record our sincere appreciation to</div>
                 <div class="cert-donor-name">${donor.name || 'Respected Voluntary Donor'}</div>
-                <div class="cert-donor-sub">Resident of <strong>${donor.city || 'Ahmedabad'}, Gujarat</strong> • Donor ID: <strong>#DON-${donor.id}</strong></div>
+                <div class="cert-donor-sub">Resident of <strong>${donor.address ? donor.address + ', ' : ''}${donor.city || 'Ahmedabad'}, Gujarat</strong> • Donor ID: <strong>#DON-${donor.id}</strong> • Location: <strong>${donor.city || 'Ahmedabad'} Regional Transfusion Center</strong></div>
 
                 <div class="cert-prose-desc">
                   for voluntarily donating blood for the noble cause of saving human lives. 
@@ -182,8 +182,8 @@
                     <span class="cert-meta-val">${donation.date || printDate}</span>
                   </div>
                   <div class="cert-meta-box">
-                    <span class="cert-meta-label">DONATION VENUE / CAMP</span>
-                    <span class="cert-meta-val">${donation.camp || 'Central Blood Bank Collection Centre'}</span>
+                    <span class="cert-meta-label">VERIFIED LOCATION / CAMP</span>
+                    <span class="cert-meta-val">${donation.camp || (donor.city + ' Regional Blood Transfusion Center')}</span>
                   </div>
                   <div class="cert-meta-box">
                     <span class="cert-meta-label">VERIFIED HEMOGLOBIN</span>
@@ -321,9 +321,9 @@
                 <div class="wc-main-info">
                   <div class="wc-name" style="font-size:17px;">${donor.name}</div>
                   <div class="wc-id" style="font-size:12px;">ID: #DON-${donor.id} • ${donor.gender || 'Male'}, ${donor.age || 26} Yrs</div>
-                  <div class="wc-contact" style="font-size:11.5px; margin-top:4px;">City: ${donor.city || 'Ahmedabad'}</div>
+                  <div class="wc-contact" style="font-size:11.5px; margin-top:4px;">📍 Location: ${donor.address ? donor.address + ', ' : ''}${donor.city || 'Ahmedabad'}, Gujarat</div>
                   <div class="wc-contact" style="font-size:11.5px;">Ph: ${donor.phone || '9876543210'}</div>
-                  <div style="font-size:10px; color:#16a34a; font-weight:700; margin-top:6px;">✓ VERIFIED CLINICAL ELIGIBILITY</div>
+                  <div style="font-size:10px; color:#16a34a; font-weight:700; margin-top:6px;">✓ VERIFIED LOCATION & CLINICAL ELIGIBILITY</div>
                 </div>
                 <div class="wc-badge-wrap">
                   <div class="wc-blood-badge" style="font-size:26px; padding:8px 12px;">${donor.bloodGroup}</div>
