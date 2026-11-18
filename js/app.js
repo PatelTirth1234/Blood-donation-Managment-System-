@@ -1284,6 +1284,48 @@
       return this.calculateDistance(this.userLocation.lat, this.userLocation.lng, cLat, cLng);
     }
 
+    getCampStageMeta(status) {
+      const s = String(status || 'Active').trim().toLowerCase();
+      if (s.includes('active') || s.includes('ongoing') || s.includes('live')) {
+        return {
+          borderClass: 'stage-border-active',
+          badgeClass: 'stage-badge-active',
+          dotClass: 'stage-dot-pulse-active',
+          label: 'ACTIVE'
+        };
+      }
+      if (s.includes('upcoming') || s.includes('sched') || s.includes('planned')) {
+        return {
+          borderClass: 'stage-border-upcoming',
+          badgeClass: 'stage-badge-upcoming',
+          dotClass: 'stage-dot-upcoming',
+          label: 'UPCOMING'
+        };
+      }
+      if (s.includes('pend') || s.includes('approv') || s.includes('review')) {
+        return {
+          borderClass: 'stage-border-pending',
+          badgeClass: 'stage-badge-pending',
+          dotClass: 'stage-dot-pending',
+          label: 'PENDING APPROVAL'
+        };
+      }
+      if (s.includes('complete') || s.includes('done') || s.includes('finish') || s.includes('conclud')) {
+        return {
+          borderClass: 'stage-border-completed',
+          badgeClass: 'stage-badge-completed',
+          dotClass: 'stage-dot-completed',
+          label: 'COMPLETED'
+        };
+      }
+      return {
+        borderClass: 'stage-border-active',
+        badgeClass: 'stage-badge-active',
+        dotClass: 'stage-dot-pulse-active',
+        label: (status || 'ACTIVE').toUpperCase()
+      };
+    }
+
     // ========================================================================
     // BLOOD DONOR MODULE (MODULE 2)
     // ========================================================================
@@ -1566,8 +1608,12 @@
         return;
       }
 
-      grid.innerHTML = filtered.map(c => `
-        <div class="camp-card">
+      grid.innerHTML = filtered.map(c => {
+        const stage = this.getCampStageMeta(c.status);
+        const inchargeName = c.inchargeStaff || c.incharge || c.incharge_staff || c.doctorRegNo || c.organizer || 'Dr. Rakesh Patel';
+        const timeFormatted = c.time ? (c.time.length === 8 ? `${c.time.slice(0, 5)} hrs` : c.time) : '09:00 AM - 04:00 PM';
+        return `
+        <div class="camp-card ${stage.borderClass}">
           <div class="camp-card-header">
             <div>
               <div class="camp-card-title">${c.name}</div>
@@ -1577,32 +1623,36 @@
           </div>
 
           <div class="camp-meta-grid">
-            <div class="camp-meta-item">
+            <div class="camp-meta-item meta-date">
               <span class="camp-meta-label">SCHEDULED DATE</span>
               <span class="camp-meta-val">${c.date}</span>
             </div>
-            <div class="camp-meta-item">
+            <div class="camp-meta-item meta-hours">
               <span class="camp-meta-label">OPERATING HOURS</span>
-              <span class="camp-meta-val">${c.time || '09:00 AM - 04:00 PM'}</span>
+              <span class="camp-meta-val">${timeFormatted}</span>
             </div>
-            <div class="camp-meta-item">
+            <div class="camp-meta-item meta-incharge">
               <span class="camp-meta-label">SUPERVISING DOCTOR</span>
-              <span class="camp-meta-val">${c.incharge}</span>
+              <span class="camp-meta-val" title="${inchargeName}">${inchargeName}</span>
             </div>
-            <div class="camp-meta-item">
+            <div class="camp-meta-item meta-target">
               <span class="camp-meta-label">TARGET COLLECTION</span>
               <span class="camp-meta-val">${c.targetUnits || 100} Units</span>
             </div>
           </div>
 
-          <div class="camp-card-footer" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-default); display:flex; justify-content:space-between; align-items:center;">
-            <span class="status-badge-chip status-badge-cleared">${c.status || 'Active'}</span>
+          <div class="camp-card-footer">
+            <span class="stage-badge ${stage.badgeClass}">
+              <span class="stage-dot ${stage.dotClass}"></span>
+              ${stage.label}
+            </span>
             <button class="btn btn-primary btn-sm" onclick="window.HemaCareApp?.openCampRegistrationModal(${c.id})" type="button">
               <span>1-Click Register</span>
             </button>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     filterNearbyCampsByRadius(radius) {
@@ -3971,7 +4021,7 @@
         if (!name || !date || !location) return;
 
         try {
-          await this.api.createCamp({ name, incharge, date, time, city, phone, location, targetUnits, status });
+          await this.api.createCamp({ name, incharge, inchargeStaff: incharge, date, time, city, phone, location, targetUnits, status });
           this.closeModal('modalAddCamp');
           await this.syncWithBackend(false);
           window.showToast('success', 'Camp Scheduled', `Camp "${name}" organized in ${city}.`);
@@ -3994,7 +4044,7 @@
         const status = document.getElementById('editCampStatus')?.value || 'Active';
 
         try {
-          await this.api.updateCamp(id, { name, incharge, date, time, city, phone, location, targetUnits, status });
+          await this.api.updateCamp(id, { name, incharge, inchargeStaff: incharge, date, time, city, phone, location, targetUnits, status });
           this.closeModal('modalEditCamp');
           await this.syncWithBackend(false);
           window.showToast('success', 'Camp Updated', `Camp #${id} updated.`);
@@ -4057,18 +4107,22 @@
         filtered = filtered.filter(c => c.city === this.campCityFilter);
       }
       if (this.campSearchQuery) {
-        filtered = filtered.filter(c =>
-          (c.name && c.name.toLowerCase().includes(this.campSearchQuery)) ||
-          (c.city && c.city.toLowerCase().includes(this.campSearchQuery)) ||
-          (c.incharge && c.incharge.toLowerCase().includes(this.campSearchQuery))
-        );
+        filtered = filtered.filter(c => {
+          const inc = c.inchargeStaff || c.incharge || c.incharge_staff || '';
+          return (c.name && c.name.toLowerCase().includes(this.campSearchQuery)) ||
+            (c.city && c.city.toLowerCase().includes(this.campSearchQuery)) ||
+            (inc && inc.toLowerCase().includes(this.campSearchQuery));
+        });
       }
 
       if (cardsView) {
         cardsView.innerHTML = filtered.map(c => {
           const dist = this.getCampDistance(c);
+          const stage = this.getCampStageMeta(c.status);
+          const inchargeName = c.inchargeStaff || c.incharge || c.incharge_staff || c.doctorRegNo || c.organizer || 'Dr. Rakesh Patel';
+          const timeFormatted = c.time ? (c.time.length === 8 ? `${c.time.slice(0, 5)} hrs` : c.time) : '09:00 AM - 04:00 PM';
           return `
-            <div class="camp-card">
+            <div class="camp-card ${stage.borderClass}">
               <div class="camp-card-header">
                 <div>
                   <div class="camp-card-title">${c.name}</div>
@@ -4077,28 +4131,35 @@
                 <span class="distance-pill">📍 ${dist} km</span>
               </div>
               <div class="camp-meta-grid">
-                <div class="camp-meta-item">
+                <div class="camp-meta-item meta-date">
                   <span class="camp-meta-label">DATE</span>
                   <span class="camp-meta-val">${c.date}</span>
                 </div>
-                <div class="camp-meta-item">
+                <div class="camp-meta-item meta-hours">
                   <span class="camp-meta-label">HOURS</span>
-                  <span class="camp-meta-val">${c.time || '09:00 AM - 04:00 PM'}</span>
+                  <span class="camp-meta-val">${timeFormatted}</span>
                 </div>
-                <div class="camp-meta-item">
+                <div class="camp-meta-item meta-incharge">
                   <span class="camp-meta-label">INCHARGE</span>
-                  <span class="camp-meta-val">${c.incharge}</span>
+                  <span class="camp-meta-val" title="${inchargeName}">${inchargeName}</span>
                 </div>
-                <div class="camp-meta-item">
+                <div class="camp-meta-item meta-target">
                   <span class="camp-meta-label">TARGET</span>
                   <span class="camp-meta-val">${c.targetUnits || 100} Units</span>
                 </div>
               </div>
-              <div class="camp-card-footer" style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
-                <span class="status-badge-chip status-badge-cleared">${c.status || 'Active'}</span>
-                <div style="display:flex; gap:6px;">
-                  <button class="btn btn-secondary btn-sm" onclick="window.HemaCareApp?.openEditCampModal(${c.id})">Edit</button>
-                  <button class="btn btn-secondary btn-sm" onclick="window.HemaCareApp?.quickLogDonationForCamp(${c.id})">+ Log</button>
+              <div class="camp-card-footer">
+                <span class="stage-badge ${stage.badgeClass}">
+                  <span class="stage-dot ${stage.dotClass}"></span>
+                  ${stage.label}
+                </span>
+                <div class="camp-actions-group">
+                  <button class="btn-camp-edit" onclick="window.HemaCareApp?.openEditCampModal(${c.id})" title="Edit Camp Details">
+                    <span>✏️ Edit</span>
+                  </button>
+                  <button class="btn-camp-log" onclick="window.HemaCareApp?.quickLogDonationForCamp(${c.id})" title="Log Collected Units">
+                    <span>+ Log</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -4107,21 +4168,26 @@
       }
 
       if (tableBody) {
-        tableBody.innerHTML = filtered.map(c => `
+        tableBody.innerHTML = filtered.map(c => {
+          const stage = this.getCampStageMeta(c.status);
+          const inchargeName = c.inchargeStaff || c.incharge || c.incharge_staff || c.doctorRegNo || c.organizer || 'Dr. Rakesh Patel';
+          const timeFormatted = c.time ? (c.time.length === 8 ? `${c.time.slice(0, 5)} hrs` : c.time) : '09:00 - 16:00';
+          return `
           <tr>
             <td>#CAMP-${c.id}</td>
             <td><strong>${c.name}</strong></td>
-            <td>${c.date} (${c.time || '09:00 - 16:00'})</td>
+            <td>${c.date} (${timeFormatted})</td>
             <td>${c.location}, ${c.city}</td>
-            <td>${c.incharge}</td>
+            <td>${inchargeName}</td>
             <td>${c.collectedUnits || 0} / ${c.targetUnits || 100} U</td>
-            <td><span class="status-badge-chip status-badge-cleared">${c.status || 'Active'}</span></td>
+            <td><span class="stage-badge ${stage.badgeClass}"><span class="stage-dot ${stage.dotClass}"></span>${stage.label}</span></td>
             <td style="text-align:right;">
               <button class="btn btn-sm btn-secondary" onclick="window.HemaCareApp?.openEditCampModal(${c.id})">Edit</button>
               <button class="btn btn-sm btn-danger" onclick="window.HemaCareApp?.deleteCamp(${c.id})">Delete</button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
     }
 
@@ -4131,7 +4197,7 @@
 
       document.getElementById('editCampId').value = camp.id;
       document.getElementById('editCampName').value = camp.name;
-      document.getElementById('editCampIncharge').value = camp.incharge;
+      document.getElementById('editCampIncharge').value = camp.inchargeStaff || camp.incharge || camp.incharge_staff || 'Meera Joshi';
       document.getElementById('editCampDate').value = camp.date;
       document.getElementById('editCampTime').value = camp.time || '09:00 AM - 04:00 PM';
       document.getElementById('editCampCity').value = camp.city;

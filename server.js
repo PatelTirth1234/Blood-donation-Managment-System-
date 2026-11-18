@@ -1696,6 +1696,7 @@ app.get('/api/camps/nearby', async (req, res) => {
           COALESCE(c.city, 'Ahmedabad') AS city,
           COALESCE(c.target_units, 100) AS "targetUnits",
           COALESCE(c.incharge_staff, 'Tirth Patel') AS "inchargeStaff",
+          COALESCE(c.incharge_staff, 'Tirth Patel') AS incharge,
           COALESCE(c.contact_phone, '9876543210') AS phone,
           COALESCE(c.status, 'Active') AS status,
           COALESCE(c.notes, '') AS notes,
@@ -2580,6 +2581,7 @@ app.get('/api/camps', async (req, res) => {
           COALESCE(c.city, 'Ahmedabad') AS city,
           COALESCE(c.target_units, 100) AS "targetUnits",
           COALESCE(c.incharge_staff, 'Tirth Patel') AS "inchargeStaff",
+          COALESCE(c.incharge_staff, 'Tirth Patel') AS incharge,
           COALESCE(c.contact_phone, '9876543210') AS phone,
           COALESCE(c.status, CASE WHEN c.date < CURRENT_DATE THEN 'Completed' ELSE 'Active' END) AS status,
           COALESCE(c.notes, '') AS notes,
@@ -2608,7 +2610,7 @@ app.post('/api/camps', async (req, res) => {
     const timeStr = body.time || '09:00 AM - 04:00 PM';
     const city = body.city || 'Ahmedabad';
     const targetUnits = parseInt(body.targetUnits || 100, 10);
-    const inchargeStaff = body.inchargeStaff || 'Tirth Patel';
+    const inchargeStaff = body.inchargeStaff || body.incharge || 'Meera Joshi';
     const phone = body.phone || '9876543210';
     const notes = body.notes || '';
     const operator = body.operator || 'Doctor';
@@ -2660,7 +2662,7 @@ app.put('/api/camps/:campId', async (req, res) => {
     const location = body.location || null;
     const city = body.city || null;
     const targetUnits = body.targetUnits !== undefined ? parseInt(body.targetUnits, 10) : null;
-    const inchargeStaff = body.inchargeStaff || null;
+    const inchargeStaff = body.inchargeStaff || body.incharge || null;
     const phone = body.phone || null;
     const status = body.status || null;
     const notes = body.notes || null;
