@@ -19,18 +19,8 @@
   };
 
   const DEFAULT_STORE = {
-    currentUser: {
-      id: 1,
-      name: 'Tirth Patel',
-      email: 'admin@hemacare.org',
-      role: 'Super Admin',
-      avatar: 'TP',
-      city: 'Ahmedabad',
-      phone: '9876543210',
-      organization: 'HemaCare OS Master HQ',
-      title: 'Global System Administrator'
-    },
-    isAuthenticated: true,
+    currentUser: null,
+    isAuthenticated: false,
     userLocation: {
       city: 'Ahmedabad',
       lat: 23.0225,
@@ -147,28 +137,16 @@
   };
 
   let localStore = null;
-  const isExplicitLoggedOut = localStorage.getItem('hemacare_session_active') === 'false';
-
   try {
     const stored = localStorage.getItem('hemacare_clinical_store') || localStorage.getItem('raktsetu_clinical_store');
     localStore = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(DEFAULT_STORE));
-    
-    if (isExplicitLoggedOut) {
-      localStore.isAuthenticated = false;
-      localStore.currentUser = null;
-    } else {
-      localStore.isAuthenticated = true;
-      if (!localStore.currentUser) {
-        localStore.currentUser = JSON.parse(JSON.stringify(DEFAULT_STORE.currentUser));
-      }
-    }
   } catch (e) {
     localStore = JSON.parse(JSON.stringify(DEFAULT_STORE));
-    localStore.isAuthenticated = !isExplicitLoggedOut;
-    if (isExplicitLoggedOut) {
-      localStore.currentUser = null;
-    }
   }
+
+  // Always require login when opening the website
+  localStore.isAuthenticated = false;
+  localStore.currentUser = null;
 
   function saveStore() {
     try {

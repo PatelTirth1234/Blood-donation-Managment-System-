@@ -29,10 +29,9 @@
   class HemaCareApp {
     constructor() {
       this.api = new window.HemaCareAPIService();
-      const isExplicitLoggedOut = localStorage.getItem('hemacare_session_active') === 'false';
-      const isSessionActive = !isExplicitLoggedOut && window.localStore && window.localStore.isAuthenticated && !!window.localStore.currentUser;
-      this.isAuthenticated = isSessionActive;
-      this.currentUser = isSessionActive ? window.localStore.currentUser : (window.localStore && window.localStore.currentUser ? window.localStore.currentUser : null);
+      // Always start unauthenticated so user is presented with the login portal on opening the website
+      this.isAuthenticated = false;
+      this.currentUser = null;
       this.currentView = 'viewDashboard';
       this.userLocation = { lat: 23.0225, lng: 72.5714, city: 'Ahmedabad' }; // Default Ahmedabad
       this.sortColumn = 'id';
@@ -77,13 +76,8 @@
       this.setupCommandPalette();
       this.setupMobileDrawer();
 
-      // Check session status: If not authenticated, show landing screen first!
-      if (this.isAuthenticated && this.currentUser) {
-        this.showAppDashboard();
-        this.routeUserToRoleDashboard(this.currentUser.role);
-      } else {
-        this.showAuthLanding();
-      }
+      // Always show login portal first when opening the website
+      this.showAuthLanding();
 
       // Initial live sync with PostgreSQL REST Gateway
       await this.syncWithBackend(true);
@@ -523,7 +517,13 @@
       pwdInput.value = 'password123';
 
       let targetRole = 'Hospital Coordinator';
-      if (roleKey === 'hospital_coordinator') {
+      if (roleKey === 'super_admin' || roleKey === 'admin') {
+        emailInput.value = 'admin@hemacare.org';
+        targetRole = 'Super Admin';
+      } else if (roleKey === 'doctor') {
+        emailInput.value = 'dr.rakesh@civilhospital.in';
+        targetRole = 'Doctor';
+      } else if (roleKey === 'hospital_coordinator') {
         emailInput.value = 'coordinator.hospital@civil.org';
         targetRole = 'Hospital Coordinator';
       } else if (roleKey === 'blood_bank_staff') {

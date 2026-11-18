@@ -81,7 +81,7 @@
        DEDICATED FULL-SCREEN SIGN IN & REGISTRATION LANDING PORTAL
        Shown for new users & unauthenticated visitors before accessing the dashboard
        ========================================================================== -->
-  <div class="auth-landing-screen auth-landing-hidden" id="authLandingScreen" style="display:none;" role="region"
+  <div class="auth-landing-screen" id="authLandingScreen" role="region"
     aria-label="RaktSetu Authentication & Registration Portal">
     <div class="auth-ambient-glow-1"></div>
     <div class="auth-ambient-glow-2"></div>
@@ -285,6 +285,8 @@
 
               <!-- Synced Select Dropdown -->
               <select id="landingLoginRole" class="select-control" style="margin-top:6px;">
+                <option value="Super Admin">👑 Super Admin</option>
+                <option value="Doctor">🩺 Doctor (Hematologist)</option>
                 <option value="Hospital Coordinator">🏨 Hospital Coordinator</option>
                 <option value="Blood Bank Staff" selected>🏥 Blood Bank Staff</option>
                 <option value="Camp Staff">🎪 Camp Staff</option>
@@ -313,14 +315,22 @@
             <!-- Quick Credential Helper Profiles -->
             <div class="auth-quick-profiles">
               <div class="quick-profiles-label">⚡ 1-Click Role Fill (Demo / Testing):</div>
-              <div class="quick-profiles-grid">
-                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('hospital_coordinator')">
-                  <span>🏨 Hospital Coord</span>
-                  <small>coordinator.hospital@civil.org</small>
+              <div class="quick-profiles-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('super_admin')">
+                  <span>👑 Super Admin</span>
+                  <small>admin@hemacare.org</small>
+                </button>
+                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('doctor')">
+                  <span>🩺 Doctor</span>
+                  <small>dr.rakesh@civilhospital.in</small>
                 </button>
                 <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('blood_bank_staff')">
                   <span>🏥 Blood Bank Staff</span>
                   <small>kavita.staff@raktsetu.org</small>
+                </button>
+                <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('hospital_coordinator')">
+                  <span>🏨 Hospital Coord</span>
+                  <small>coordinator.hospital@civil.org</small>
                 </button>
                 <button type="button" class="btn-quick-cred" onclick="window.HemaCareApp?.fillQuickLogin('camp_staff')">
                   <span>🎪 Camp Staff</span>
@@ -622,7 +632,7 @@
     </div>
   </div>
 
-  <div class="app-container" id="appContainer">
+  <div class="app-container" id="appContainer" style="display:none;">
 
     <!-- ==========================================================================
          LEFT NAVIGATION RAIL (260px Fixed Width / Drawer on Mobile)
